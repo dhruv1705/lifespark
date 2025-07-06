@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { AuthScreen } from './src/screens/AuthScreen';
 import { BottomTabNavigator } from './src/navigation/BottomTabNavigator';
 import { ActivityIndicator, View } from 'react-native';
+import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { theme } from './src/theme';
 
 const AppNavigator = () => {
@@ -33,10 +34,12 @@ const AppNavigator = () => {
 
 export default function App() {
   return (
-    <SafeAreaProvider>
-      <AuthProvider>
-        <AppNavigator />
-      </AuthProvider>
-    </SafeAreaProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <AuthProvider>
+          <AppNavigator />
+        </AuthProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }

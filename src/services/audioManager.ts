@@ -1,5 +1,6 @@
 import { backgroundMusic } from './backgroundMusicService';
 import { elevenLabsSpeech } from './elevenLabsSpeechService';
+import { speechQueue, SpeechType, SpeechPriority } from './speechQueue';
 
 interface AudioSettings {
   musicEnabled: boolean;
@@ -29,11 +30,19 @@ class AudioManager {
       await backgroundMusic.initialize();
       
       // Auto-configure ElevenLabs if API key is available
-      const elevenLabsApiKey = process.env.EXPO_PUBLIC_ELEVENLABS_API_KEY;
-      const elevenLabsVoiceId = process.env.EXPO_PUBLIC_ELEVENLABS_VOICE_ID;
-      if (elevenLabsApiKey && elevenLabsApiKey !== 'your-elevenlabs-api-key-here') {
-        this.configureElevenLabs(elevenLabsApiKey, elevenLabsVoiceId);
-        console.log('🎙️ ElevenLabs auto-configured from environment');
+      try {
+        const elevenLabsApiKey = process.env.EXPO_PUBLIC_ELEVENLABS_API_KEY;
+        const elevenLabsVoiceId = process.env.EXPO_PUBLIC_ELEVENLABS_VOICE_ID;
+        if (elevenLabsApiKey && elevenLabsApiKey !== 'your-elevenlabs-api-key-here' && elevenLabsApiKey !== 'your-elevenlabs-api-key') {
+          this.configureElevenLabs(elevenLabsApiKey, elevenLabsVoiceId);
+          console.log('🎙️ ElevenLabs auto-configured from environment');
+        } else {
+          console.log('⚠️ ElevenLabs API key not configured - speech will be disabled');
+          this.settings.speechEnabled = false;
+        }
+      } catch (error) {
+        console.log('⚠️ Error configuring ElevenLabs - continuing without voice');
+        this.settings.speechEnabled = false;
       }
       
       // Configure music ducking volume
@@ -88,9 +97,13 @@ class AudioManager {
     console.log('▶️ Audio session resumed');
   }
 
-  async endSession() {
+  async endSession(sessionType: 'stretch' | 'strength' = 'stretch') {
     if (this.settings.speechEnabled && elevenLabsSpeech.isConfigured()) {
-      await elevenLabsSpeech.speakCompletion();
+      if (sessionType === 'strength') {
+        await elevenLabsSpeech.speakStrengthCompletion();
+      } else {
+        await elevenLabsSpeech.speakCompletion();
+      }
     }
     
     await backgroundMusic.stop();
@@ -98,60 +111,120 @@ class AudioManager {
     console.log('🏁 Audio session ended');
   }
 
-  // ElevenLabs-only speech method
-  private async speak(text: string) {
-    if (!this.settings.speechEnabled) return;
-
-    try {
-      if (elevenLabsSpeech.isConfigured()) {
-        console.log('🎙️ Using ElevenLabs (Clara) for speech');
-        await elevenLabsSpeech.speak(text);
-      } else {
-        console.error('❌ ElevenLabs not configured - cannot speak');
-      }
-    } catch (error) {
-      console.error('❌ ElevenLabs speech failed:', error);
+  // Queue-based speech method with conflict prevention
+  private queueSpeech(
+    text: string, 
+    type: SpeechType, 
+    priority: SpeechPriority = 'medium',
+    options: { cannotInterrupt?: boolean; sessionType?: 'stretch' | 'strength' } = {}
+  ): string | null {
+    if (!this.settings.speechEnabled) {
+      console.log('🔇 Speech disabled in settings');
+      return null;
     }
+
+    if (!elevenLabsSpeech.isConfigured()) {
+      console.error('❌ ElevenLabs not configured - cannot queue speech');
+      return null;
+    }
+
+    return speechQueue.addSpeech(text, type, priority, options);
   }
 
-  async speakExerciseStart(exerciseName: string, description: string) {
-    if (!this.settings.speechEnabled) return;
+  async speakExerciseStart(exerciseName: string, description: string, sessionType: 'stretch' | 'strength' = 'stretch') {
+    const text = sessionType === 'strength' 
+      ? `Time for ${exerciseName}! ${description}. Feel that strength building with every rep. You've got this!`
+      : `Now we'll move into ${exerciseName}. ${description}. Remember to breathe deeply and listen to your body.`;
     
-    if (elevenLabsSpeech.isConfigured()) {
-      await elevenLabsSpeech.speakExerciseIntro(exerciseName, description);
-    } else {
-      console.error('❌ ElevenLabs not configured - cannot speak exercise start');
+    this.queueSpeech(text, 'exercise-intro', 'high', { 
+      cannotInterrupt: true, 
+      sessionType 
+    });
+  }
+
+  // Strength-specific methods
+  async speakStrengthWelcome() {
+    const text = "Ready to build some serious strength? Let's crush these push-ups together and feel that power growing with every rep!";
+    this.queueSpeech(text, 'welcome', 'high', { 
+      cannotInterrupt: true, 
+      sessionType: 'strength' 
+    });
+  }
+
+  async speakRepEncouragement(repNumber: number, totalReps: number) {
+    // Prevent encouragement spam - only if no other encouragement is queued
+    if (speechQueue.hasSpeechType('encouragement')) {
+      console.log('🚫 Encouragement already queued, skipping');
+      return;
+    }
+    
+    const remaining = totalReps - repNumber;
+    const encouragements = [
+      `Push-up ${repNumber}! Feel that strength building with every rep!`,
+      `${repNumber} down, ${remaining} to go! You're absolutely crushing this!`,
+      `Perfect form on rep ${repNumber}! Every push-up makes you stronger!`,
+      `Rep ${repNumber} complete! Your muscles are thanking you right now!`
+    ];
+    
+    const text = encouragements[Math.floor(Math.random() * encouragements.length)];
+    this.queueSpeech(text, 'encouragement', 'low', { sessionType: 'strength' });
+  }
+
+  async speakStrengthMilestone(repNumber: number, totalReps: number) {
+    let text = '';
+    
+    if (repNumber === Math.floor(totalReps / 2)) {
+      text = "Halfway there, powerhouse! You're building real strength. Keep that perfect form!";
+    } else if (repNumber === totalReps - 2) {
+      text = "Only 2 more! You can taste victory now. Finish strong like the champion you are!";
+    } else if (repNumber === totalReps - 1) {
+      text = "ONE MORE REP! This is your moment to shine. Give it everything you've got!";
+    }
+    
+    if (text) {
+      // Clear any pending encouragement to make room for milestone
+      speechQueue.clearSpeechType('encouragement');
+      this.queueSpeech(text, 'milestone', 'medium', { sessionType: 'strength' });
     }
   }
 
   async speakTimeAlert(seconds: number) {
-    if (!this.settings.speechEnabled) return;
+    let text = '';
     
-    if (elevenLabsSpeech.isConfigured()) {
-      await elevenLabsSpeech.speakTimeRemaining(seconds);
-    } else {
-      console.error('❌ ElevenLabs not configured - cannot speak time alert');
+    if (seconds === 10) {
+      text = "Just ten more seconds. You're doing beautifully.";
+    } else if (seconds === 5) {
+      text = "Five more seconds. Feel that gentle stretch.";
+    } else if (seconds === 3) {
+      text = "Three... two... one... perfect.";
+    }
+    
+    if (text) {
+      this.queueSpeech(text, 'time-alert', 'medium', { sessionType: 'stretch' });
     }
   }
 
-  async speakTransition(fromExercise: string, toExercise: string) {
-    if (!this.settings.speechEnabled) return;
+  async speakTransition(fromExercise: string, toExercise: string, sessionType: 'stretch' | 'strength' = 'stretch') {
+    const text = sessionType === 'strength'
+      ? `Excellent work on ${fromExercise}! Get ready for ${toExercise}. Keep that power flowing!`
+      : `Wonderful work on ${fromExercise}. Take a breath, and now we'll gently move to ${toExercise}.`;
     
-    if (elevenLabsSpeech.isConfigured()) {
-      await elevenLabsSpeech.speakTransition(fromExercise, toExercise);
-    } else {
-      console.error('❌ ElevenLabs not configured - cannot speak transition');
+    // Wait for any current speech to finish before transition
+    if (speechQueue.hasUpcomingSpeech()) {
+      await speechQueue.waitForCurrent();
     }
+    
+    this.queueSpeech(text, 'transition', 'medium', { sessionType });
   }
 
-  async speakEncouragement(message: string) {
-    if (!this.settings.speechEnabled) return;
-    
-    if (elevenLabsSpeech.isConfigured()) {
-      await elevenLabsSpeech.speak(message);
-    } else {
-      console.error('❌ ElevenLabs not configured - cannot speak encouragement');
+  async speakEncouragement(message: string, sessionType: 'stretch' | 'strength' = 'stretch') {
+    // Prevent encouragement spam
+    if (speechQueue.hasSpeechType('encouragement')) {
+      console.log('🚫 Encouragement already queued, skipping');
+      return;
     }
+    
+    this.queueSpeech(message, 'encouragement', 'low', { sessionType });
   }
 
   // Settings management
@@ -205,8 +278,8 @@ class AudioManager {
     this.settings.speechEnabled = !this.settings.speechEnabled;
     
     if (!this.settings.speechEnabled) {
-      // Stop ElevenLabs speech service
-      await elevenLabsSpeech.stop();
+      // Stop all speech and clear queue
+      await speechQueue.stopAll();
     }
     
     console.log(`🗣️ Speech ${this.settings.speechEnabled ? 'enabled' : 'disabled'}`);

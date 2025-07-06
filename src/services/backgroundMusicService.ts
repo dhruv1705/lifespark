@@ -30,6 +30,12 @@ class BackgroundMusicService {
       }
 
       console.log('🎵 Loading background music...');
+      
+      // Validate music file exists
+      if (!musicFile) {
+        throw new Error('Music file not provided');
+      }
+      
       const { sound } = await Audio.Sound.createAsync(
         musicFile,
         {

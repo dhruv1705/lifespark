@@ -170,8 +170,43 @@ class ElevenLabsSpeechService {
     await this.speak("Welcome to your morning stretch routine. Take a moment to find your center, and let's begin this peaceful journey together.");
   }
 
+  // Strength training specific methods with energizing tone
+  async speakStrengthWelcome() {
+    await this.speak("Ready to build some serious strength? Let's crush these push-ups together and feel that power growing with every rep!");
+  }
+
   async speakExerciseIntro(exerciseName: string, description: string) {
     await this.speak(`Now we'll move into ${exerciseName}. ${description}. Remember to breathe deeply and listen to your body.`);
+  }
+
+  // Strength training exercise intro with power and motivation
+  async speakStrengthExerciseIntro(exerciseName: string, description: string) {
+    await this.speak(`Time for ${exerciseName}! ${description}. Feel that strength building with every rep. You've got this!`);
+  }
+
+  // Rep-specific encouragement for push-ups
+  async speakRepEncouragement(repNumber: number, totalReps: number) {
+    const remaining = totalReps - repNumber;
+    const encouragements = [
+      `Push-up ${repNumber}! Feel that strength building with every rep!`,
+      `${repNumber} down, ${remaining} to go! You're absolutely crushing this!`,
+      `Perfect form on rep ${repNumber}! Every push-up makes you stronger!`,
+      `Rep ${repNumber} complete! Your muscles are thanking you right now!`
+    ];
+    
+    const message = encouragements[Math.floor(Math.random() * encouragements.length)];
+    await this.speak(message);
+  }
+
+  // Milestone celebrations during strength training
+  async speakStrengthMilestone(repNumber: number, totalReps: number) {
+    if (repNumber === Math.floor(totalReps / 2)) {
+      await this.speak("Halfway there, powerhouse! You're building real strength. Keep that perfect form!");
+    } else if (repNumber === totalReps - 2) {
+      await this.speak("Only 2 more! You can taste victory now. Finish strong like the champion you are!");
+    } else if (repNumber === totalReps - 1) {
+      await this.speak("ONE MORE REP! This is your moment to shine. Give it everything you've got!");
+    }
   }
 
   async speakTimeRemaining(seconds: number) {
@@ -193,6 +228,19 @@ class ElevenLabsSpeechService {
       "Beautiful work! You've completed your morning stretch routine. Notice how your body feels - more relaxed, more centered. Carry this peaceful energy with you throughout your day.",
       "Excellent! Your body thanks you for this gift of movement and mindfulness. You've started your day with intention and care.",
       "Perfect! You've nourished your body and spirit. Feel proud of this commitment to your wellbeing."
+    ];
+    
+    const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+    await this.speak(randomMessage);
+  }
+
+  // Strength training completion with power and achievement
+  async speakStrengthCompletion() {
+    const messages = [
+      "INCREDIBLE! You just built serious strength! Feel those muscles - they're thanking you for every single rep. You've earned every bit of that XP!",
+      "BOOM! Ten perfect push-ups! You're officially stronger than when you started. That's the power of consistency and determination!",
+      "Outstanding work, champion! You've pushed through, built strength, and proven what you're capable of. Your body is getting stronger every day!",
+      "AMAZING! You just crushed those push-ups! Feel that strength flowing through your body. You're building the foundation for an incredible future!"
     ];
     
     const randomMessage = messages[Math.floor(Math.random() * messages.length)];
