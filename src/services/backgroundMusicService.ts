@@ -6,6 +6,7 @@ class BackgroundMusicService {
   private isPlaying: boolean = false;
   private volume: number = 0.3; // Default volume (30%)
   private originalVolume: number = 0.3;
+  private duckedVolume: number = 0.08; // Volume when speech is active (8%)
 
   async initialize() {
     try {
@@ -29,6 +30,12 @@ class BackgroundMusicService {
       }
 
       console.log('🎵 Loading background music...');
+      
+      // Validate music file exists
+      if (!musicFile) {
+        throw new Error('Music file not provided');
+      }
+      
       const { sound } = await Audio.Sound.createAsync(
         musicFile,
         {
@@ -122,12 +129,12 @@ class BackgroundMusicService {
     }
   }
 
-  // Duck music volume when speech is playing
+  // Duck music volume when speech is playing (keep music playing but quieter)
   async duck() {
     if (this.sound && this.isPlaying) {
       try {
-        await this.sound.setVolumeAsync(this.volume * 0.2); // Reduce to 20% of current volume
-        console.log('🦆 Music ducked for speech');
+        await this.sound.setVolumeAsync(this.duckedVolume);
+        console.log(`🦆 Music ducked to ${Math.round(this.duckedVolume * 100)}% for speech`);
       } catch (error) {
         console.error('Error ducking music:', error);
       }
@@ -139,7 +146,7 @@ class BackgroundMusicService {
     if (this.sound) {
       try {
         await this.sound.setVolumeAsync(this.volume);
-        console.log('🔊 Music volume restored');
+        console.log(`🔊 Music volume restored to ${Math.round(this.volume * 100)}%`);
       } catch (error) {
         console.error('Error restoring music volume:', error);
       }
@@ -160,11 +167,18 @@ class BackgroundMusicService {
     }
   }
 
+  // Configure ducking volume (how quiet music gets during speech)
+  setDuckingVolume(volume: number) {
+    this.duckedVolume = Math.max(0, Math.min(1, volume));
+    console.log(`🦆 Ducking volume set to ${Math.round(this.duckedVolume * 100)}%`);
+  }
+
   getStatus() {
     return {
       isLoaded: this.isLoaded,
       isPlaying: this.isPlaying,
       volume: this.volume,
+      duckedVolume: this.duckedVolume,
     };
   }
 }

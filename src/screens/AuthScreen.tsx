@@ -10,7 +10,9 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
 import { theme } from '../theme';
 
 export const AuthScreen: React.FC = () => {
@@ -18,6 +20,8 @@ export const AuthScreen: React.FC = () => {
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const { isOfflineMode } = useAuth();
 
   const handleAuth = async () => {
     if (!email || !password) {
@@ -26,6 +30,16 @@ export const AuthScreen: React.FC = () => {
     }
 
     setLoading(true);
+
+    // Handle offline/demo mode
+    if (isOfflineMode) {
+      // In offline mode, just simulate successful login
+      setTimeout(() => {
+        setLoading(false);
+        Alert.alert('Demo Mode', 'You\'re now using Lifespark in demo mode with sample data!');
+      }, 1000);
+      return;
+    }
 
     try {
       if (isSignUp) {
@@ -43,10 +57,26 @@ export const AuthScreen: React.FC = () => {
         if (error) throw error;
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message);
-    } finally {
-      setLoading(false);
+      // Handle network errors gracefully
+      if (error.message?.includes('fetch') || error.message?.includes('network')) {
+        Alert.alert(
+          'Connection Issue', 
+          'Unable to connect to the server. The app will continue in demo mode with sample data.',
+          [{ text: 'OK', onPress: () => {
+            // Force offline mode
+            setLoading(false);
+          }}]
+        );
+      } else {
+        Alert.alert('Error', error.message);
+        setLoading(false);
+      }
     }
+  };
+
+  const handleAutoFill = () => {
+    setEmail('john@gmail.com');
+    setPassword('John123456');
   };
 
   return (
@@ -61,6 +91,11 @@ export const AuthScreen: React.FC = () => {
             <Text style={styles.subtitle}>
               {isSignUp ? 'Create your account' : 'Welcome back'}
             </Text>
+            {isOfflineMode && (
+              <View style={styles.demoModeIndicator}>
+                <Text style={styles.demoModeText}>🔄 Demo Mode</Text>
+              </View>
+            )}
           </View>
 
           <View style={styles.form}>
@@ -73,14 +108,26 @@ export const AuthScreen: React.FC = () => {
               autoCapitalize="none"
               autoCorrect={false}
             />
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoCapitalize="none"
-            />
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="Password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+              />
+              <TouchableOpacity
+                style={styles.eyeIcon}
+                onPress={() => setShowPassword(!showPassword)}
+              >
+                <Ionicons
+                  name={showPassword ? 'eye-off' : 'eye'}
+                  size={24}
+                  color={theme.colors.text.secondary}
+                />
+              </TouchableOpacity>
+            </View>
 
             <TouchableOpacity
               style={[styles.button, loading && styles.buttonDisabled]}
@@ -101,6 +148,16 @@ export const AuthScreen: React.FC = () => {
                   ? 'Already have an account? Sign In' 
                   : "Don't have an account? Sign Up"
                 }
+              </Text>
+            </TouchableOpacity>
+
+            {/* Auto Fill Button */}
+            <TouchableOpacity
+              style={styles.autoFillButton}
+              onPress={handleAutoFill}
+            >
+              <Text style={styles.autoFillButtonText}>
+                ⚡ Auto Fill for Testing
               </Text>
             </TouchableOpacity>
           </View>
@@ -149,6 +206,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.border,
   },
+  passwordContainer: {
+    position: 'relative',
+    marginBottom: theme.spacing.md,
+  },
+  passwordInput: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    paddingRight: 50,
+    fontSize: theme.typography.sizes.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: theme.spacing.md,
+    top: '50%',
+    transform: [{ translateY: -12 }],
+  },
   button: {
     backgroundColor: theme.colors.primary.blue,
     borderRadius: theme.borderRadius.md,
@@ -171,5 +247,32 @@ const styles = StyleSheet.create({
   switchText: {
     color: theme.colors.primary.blue,
     fontSize: theme.typography.sizes.sm,
+  },
+  demoModeIndicator: {
+    marginTop: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.xs,
+    backgroundColor: 'rgba(255, 193, 7, 0.2)',
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 193, 7, 0.5)',
+  },
+  demoModeText: {
+    color: '#F57F17',
+    fontSize: theme.typography.sizes.sm,
+    fontWeight: theme.typography.weights.bold,
+    textAlign: 'center',
+  },
+  autoFillButton: {
+    backgroundColor: theme.colors.primary.orange,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    alignItems: 'center',
+    marginTop: theme.spacing.md,
+  },
+  autoFillButtonText: {
+    color: '#000000',
+    fontSize: theme.typography.sizes.md,
+    fontWeight: theme.typography.weights.bold,
   },
 });

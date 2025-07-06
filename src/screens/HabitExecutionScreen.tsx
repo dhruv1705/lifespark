@@ -19,6 +19,10 @@ import { getInteractiveHabitData } from '../data/interactiveHabits';
 import { theme } from '../theme';
 import { dataSync, DATA_SYNC_EVENTS } from '../utils/dataSync';
 import { audioManager } from '../services/audioManager';
+import { AchievementBurst } from '../components/AchievementBurst';
+import { DynamicInstructions } from '../components/DynamicInstructions';
+import { Achievement } from '../services/gamification';
+import { MusicSelectionModal } from '../components/MusicSelectionModal';
 
 type HabitExecutionScreenNavigationProp = StackNavigationProp<RootStackParamList, 'HabitExecution'>;
 type HabitExecutionScreenRouteProp = RouteProp<RootStackParamList, 'HabitExecution'>;
@@ -38,6 +42,7 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
   const { user } = useAuth();
   
   const [habit, setHabit] = useState<Habit | null>(null);
+  const [isStrengthHabit, setIsStrengthHabit] = useState(false);
   const [session, setSession] = useState<HabitSession | null>(null);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [stepTimeRemaining, setStepTimeRemaining] = useState(0);
@@ -48,8 +53,14 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
   
   // Audio state
   const [musicEnabled, setMusicEnabled] = useState(true);
-  const [speechEnabled, setSpeechEnabled] = useState(true);
   const [musicVolume, setMusicVolume] = useState(0.3);
+
+  const [showAchievement, setShowAchievement] = useState(false);
+  const [currentAchievement, setCurrentAchievement] = useState<Achievement | null>(null);
+
+  // Music selection states
+  const [showMusicModal, setShowMusicModal] = useState(false);
+  const [selectedMusicId, setSelectedMusicId] = useState('angelical');
 
   // Load habit data
   useEffect(() => {
@@ -70,15 +81,6 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
     if (isStarted && !isPaused && stepTimeRemaining > 0) {
       interval = setInterval(() => {
         setStepTimeRemaining(prev => {
-          // Voice alerts for time remaining
-          if (prev === 11) {
-            audioManager.speakTimeAlert(10).catch(console.error);
-          } else if (prev === 6) {
-            audioManager.speakTimeAlert(5).catch(console.error);
-          } else if (prev === 4) {
-            audioManager.speakTimeAlert(3).catch(console.error);
-          }
-
           if (prev <= 1) {
             // Step completed, move to next
             handleStepComplete();
@@ -122,6 +124,16 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
       // Enhanced with interactive data
       const enhancedHabit = getInteractiveHabitData(habitId, baseHabit);
       setHabit(enhancedHabit);
+      
+      // Detect habit types
+      const isStrength = baseHabit.name.toLowerCase().includes('push-up') || 
+                        baseHabit.name.toLowerCase().includes('pushup') ||
+                        baseHabit.name.toLowerCase().includes('push up');
+      setIsStrengthHabit(isStrength);
+
+      // Load music preferences
+      const smartRecommendation = audioManager.getSmartMusicRecommendation(baseHabit.name);
+      setSelectedMusicId(smartRecommendation.id);
 
       // Initialize session for guided habits
       if (enhancedHabit.executionType === 'guided' && enhancedHabit.steps) {
@@ -153,21 +165,16 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
       // Configure audio settings
       audioManager.updateSettings({
         musicEnabled,
-        speechEnabled,
         musicVolume,
       });
 
-      // Start audio session
-      // Note: You'll need to place your MP3 file in assets/audio/ and update this line
-      // const musicFile = require('../../assets/audio/your-music-file.mp3');
-      // For now, we'll start without music but with speech
-      await audioManager.initialize();
-      
-      if (speechEnabled) {
-        await audioManager.speakExerciseStart(
-          habit?.steps?.[0]?.title || 'your first stretch',
-          habit?.steps?.[0]?.description || ''
-        );
+      // Start audio session with selected background music
+      try {
+        await audioManager.startSession(habit?.name);
+      } catch (audioError) {
+        console.warn('⚠️ Could not load background music, continuing without audio:', audioError);
+        // Initialize audio manager without music file
+        await audioManager.initialize();
       }
       
       console.log('🎯 Session started with audio');
@@ -192,6 +199,28 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
     } catch (error) {
       console.error('Error handling pause/resume audio:', error);
     }
+  };
+
+
+  const handleMusicSelection = async (trackId: string) => {
+    setSelectedMusicId(trackId);
+    await audioManager.setSelectedMusic(trackId, habit?.name);
+    console.log(`🎵 Music selected: ${trackId} for ${habit?.name}`);
+  };
+
+  const handleMusicSwitch = async () => {
+    if (!isStarted) {
+      setShowMusicModal(true);
+    } else {
+      // Quick switch between the two main tracks
+      const newTrackId = selectedMusicId === 'angelical' ? 'upbeat' : 'angelical';
+      setSelectedMusicId(newTrackId);
+      await audioManager.switchMusic(newTrackId, habit?.name);
+    }
+  };
+
+  const getMusicDisplayInfo = () => {
+    return audioManager.getMusicDisplayInfo(selectedMusicId);
   };
 
   const handleStepComplete = async () => {
@@ -219,15 +248,6 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
     setCurrentStepIndex(nextStepIndex);
     setStepTimeRemaining(nextStep.duration);
 
-    // Voice transition to next exercise
-    try {
-      await audioManager.speakTransition(
-        currentStep.title,
-        nextStep.title
-      );
-    } catch (error) {
-      console.error('Error speaking transition:', error);
-    }
   };
 
   const handleSessionComplete = async () => {
@@ -235,7 +255,7 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
 
     try {
       // End audio session with completion message
-      await audioManager.endSession();
+      await audioManager.endSession(isStrengthHabit ? 'strength' : 'stretch');
 
       // Mark habit as completed and award XP
       await DataService.toggleHabitCompletion(user.id, habitId, habit.xp);
@@ -338,26 +358,87 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
 
   const renderPreSession = () => (
     <ScrollView style={styles.preSessionContainer} showsVerticalScrollIndicator={false}>
-      <View style={styles.headerCard}>
-        <Text style={styles.habitTitle}>{habit?.name}</Text>
-        <Text style={styles.habitDescription}>{habit?.description}</Text>
-        <Text style={styles.durationText}>
-          ⏱️ {Math.round((habit?.duration || 0) / 60)} minutes • {habit?.steps?.length} stretches
+      {/* Welcome Header with Gradient */}
+      <View style={styles.welcomeHeader}>
+        <Text style={styles.welcomeEmoji}>
+          {isStrengthHabit ? '🔥' : '🌅'}
         </Text>
+        <Text style={styles.welcomeTitle}>
+          {isStrengthHabit ? 'Power Up Time!' : 'Rise & Shine!'}
+        </Text>
+        <Text style={styles.welcomeSubtitle}>
+          {isStrengthHabit 
+            ? 'Ready to build that strength? Let\'s crush those reps together!' 
+            : 'Time to awaken your body with gentle movement'}
+        </Text>
+        
+        {/* Streak Counter */}
+        <View style={styles.streakContainer}>
+          <View style={styles.streakBadge}>
+            <Text style={styles.streakIcon}>🔥</Text>
+            <Text style={styles.streakNumber}>7</Text>
+            <Text style={styles.streakLabel}>day streak</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.headerCard}>
+        <View style={styles.habitIconContainer}>
+          <Text style={styles.habitIcon}>
+            {isStrengthHabit ? '💪' : '🧘‍♀️'}
+          </Text>
+        </View>
+        <Text style={styles.habitTitle}>{habit?.name}</Text>
+        <Text style={styles.habitDescription}>
+          {isStrengthHabit 
+            ? 'Every rep makes you stronger' 
+            : 'Give your body the perfect start to the day'}
+        </Text>
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Text style={styles.statIcon}>⏱️</Text>
+            <Text style={styles.statText}>{Math.round((habit?.duration || 0) / 60)} min</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statIcon}>
+              {isStrengthHabit ? '🏋️‍♂️' : '🤸‍♀️'}
+            </Text>
+            <Text style={styles.statText}>
+              {habit?.steps?.length} {isStrengthHabit ? 'reps' : 'stretches'}
+            </Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statIcon}>⚡</Text>
+            <Text style={styles.statText}>+{habit?.xp} XP</Text>
+          </View>
+        </View>
       </View>
 
       <View style={styles.instructionsCard}>
-        <Text style={styles.sectionTitle}>Before we start:</Text>
-        {habit?.instructions?.map((instruction, index) => (
-          <Text key={index} style={styles.instructionText}>
-            • {instruction}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionIcon}>{isStrengthHabit ? '💥' : '✨'}</Text>
+          <Text style={styles.sectionTitle}>
+            {isStrengthHabit ? 'Before we dominate:' : 'Let\'s prepare for success:'}
           </Text>
+        </View>
+        {habit?.instructions?.map((instruction, index) => (
+          <View key={index} style={styles.instructionRow}>
+            <View style={styles.instructionBullet}>
+              <Text style={styles.instructionBulletText}>{index + 1}</Text>
+            </View>
+            <Text style={styles.instructionText}>{instruction}</Text>
+          </View>
         ))}
       </View>
 
       {/* Audio Settings */}
       <View style={styles.audioSettingsCard}>
-        <Text style={styles.sectionTitle}>Audio Settings</Text>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionIcon}>🎵</Text>
+          <Text style={styles.sectionTitle}>Create your perfect vibe</Text>
+        </View>
         
         <View style={styles.audioToggleRow}>
           <Text style={styles.audioToggleLabel}>🎵 Background Music</Text>
@@ -376,26 +457,51 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
           </TouchableOpacity>
         </View>
 
-        <View style={styles.audioToggleRow}>
-          <Text style={styles.audioToggleLabel}>🗣️ Voice Guidance</Text>
+      </View>
+
+      {/* Music Selection */}
+      <View style={styles.musicSelectionCard}>
+        <View style={styles.musicSelectionHeader}>
+          <Text style={styles.musicSelectionTitle}>🎵 Background Music</Text>
           <TouchableOpacity
-            style={[styles.audioToggle, speechEnabled && styles.audioToggleActive]}
-            onPress={async () => {
-              setSpeechEnabled(!speechEnabled);
-              if (isStarted) {
-                await audioManager.toggleSpeech();
-              }
-            }}
+            style={styles.changeMusicButton}
+            onPress={() => setShowMusicModal(true)}
           >
-            <Text style={[styles.audioToggleText, speechEnabled && styles.audioToggleTextActive]}>
-              {speechEnabled ? 'ON' : 'OFF'}
-            </Text>
+            <Text style={styles.changeMusicButtonText}>Change</Text>
           </TouchableOpacity>
         </View>
+        
+        <TouchableOpacity 
+          style={styles.selectedMusicItem}
+          onPress={() => setShowMusicModal(true)}
+        >
+          <Text style={styles.selectedMusicIcon}>
+            {getMusicDisplayInfo()?.icon || '🎵'}
+          </Text>
+          <View style={styles.selectedMusicInfo}>
+            <Text style={styles.selectedMusicName}>
+              {getMusicDisplayInfo()?.title || 'Calm & Peaceful'}
+            </Text>
+            <Text style={styles.selectedMusicDescription}>
+              {getMusicDisplayInfo()?.subtitle || 'Perfect for your workout'}
+            </Text>
+          </View>
+          <Text style={styles.selectedMusicArrow}>›</Text>
+        </TouchableOpacity>
       </View>
 
       <TouchableOpacity style={styles.startButton} onPress={handleStartSession}>
-        <Text style={styles.startButtonText}>Start Stretching 🧘‍♀️</Text>
+        <View style={styles.startButtonContent}>
+          <Text style={styles.startButtonEmoji}>
+            {isStrengthHabit ? '💪' : '🌟'}
+          </Text>
+          <Text style={styles.startButtonText}>
+            {isStrengthHabit ? 'LET\'S BUILD STRENGTH!' : 'Begin Your Morning Journey'}
+          </Text>
+          <Text style={styles.startButtonSubtext}>
+            {isStrengthHabit ? 'Ready to feel powerful?' : 'Ready to feel amazing?'}
+          </Text>
+        </View>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -406,38 +512,63 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
     const progress = ((currentStepIndex) / totalSteps) * 100;
 
     return (
-      <View style={styles.sessionContainer}>
+      <ScrollView 
+        style={styles.sessionContainer}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.sessionContent}
+      >
         {/* Progress Bar */}
         <View style={styles.progressContainer}>
           <View style={styles.progressBar}>
             <View style={[styles.progressFill, { width: `${progress}%` }]} />
           </View>
           <Text style={styles.progressText}>
-            {currentStepIndex}/{totalSteps} stretches
+            {currentStepIndex}/{totalSteps} {isStrengthHabit ? 'reps' : 'stretches'}
           </Text>
         </View>
 
-        {/* Timer Circle */}
+        {/* Enhanced Timer Circle */}
         <View style={styles.timerContainer}>
-          <View style={styles.timerCircle}>
-            <Text style={styles.timerText}>{formatTime(stepTimeRemaining)}</Text>
-            <Text style={styles.timerLabel}>remaining</Text>
+          <View style={styles.timerOuterRing}>
+            <View style={styles.timerInnerRing}>
+              <View style={styles.timerCore}>
+                <Text style={styles.timerText}>{formatTime(stepTimeRemaining)}</Text>
+                <Text style={styles.timerLabel}>remaining</Text>
+                <View style={styles.breathingIndicator}>
+                  <Text style={styles.breathingText}>
+                    {isStrengthHabit ? 'power' : 'breathe'}
+                  </Text>
+                </View>
+              </View>
+            </View>
           </View>
         </View>
 
-        {/* Current Step */}
-        <View style={styles.stepCard}>
-          <Text style={styles.stepTitle}>{currentStep?.title}</Text>
-          <Text style={styles.stepDescription}>{currentStep?.description}</Text>
-          
-          <ScrollView style={styles.instructionsContainer} showsVerticalScrollIndicator={false}>
-            {currentStep?.instructions.map((instruction, index) => (
-              <Text key={index} style={styles.stepInstruction}>
-                {index + 1}. {instruction}
-              </Text>
-            ))}
-          </ScrollView>
+        {/* Current Step Header */}
+        <View style={styles.stepHeaderCard}>
+          <View style={styles.stepHeader}>
+            <View style={styles.stepIconContainer}>
+              <Text style={styles.stepIcon}>{isStrengthHabit ? '🏋️‍♂️' : '🧘‍♀️'}</Text>
+            </View>
+            <View style={styles.stepTitleContainer}>
+              <Text style={styles.stepTitle}>{currentStep?.title}</Text>
+              <Text style={styles.stepDescription}>{currentStep?.description}</Text>
+            </View>
+          </View>
         </View>
+
+        {/* Dynamic Instructions */}
+        <DynamicInstructions
+          instructions={currentStep?.instructions || []}
+          stepDuration={habit?.steps?.[currentStepIndex]?.duration || 30}
+          stepTimeRemaining={stepTimeRemaining}
+          isActive={isStarted && !isPaused}
+          isPaused={isPaused}
+          onInstructionChange={(index, instruction) => {
+            // Could trigger additional voice guidance here if needed
+            console.log(`Instruction ${index + 1}: ${instruction}`);
+          }}
+        />
 
         {/* Controls */}
         <View style={styles.controlsContainer}>
@@ -471,18 +602,18 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={[styles.audioQuickButton, !speechEnabled && styles.audioQuickButtonMuted]}
-            onPress={async () => {
-              setSpeechEnabled(!speechEnabled);
-              await audioManager.toggleSpeech();
-            }}
+            style={styles.audioQuickButton}
+            onPress={handleMusicSwitch}
           >
-            <Text style={styles.audioQuickButtonText}>{speechEnabled ? '🗣️' : '🤐'}</Text>
+            <Text style={styles.audioQuickButtonText}>
+              {getMusicDisplayInfo()?.icon || '🎶'}
+            </Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </ScrollView>
     );
   };
+
 
   if (loading) {
     return (
@@ -503,12 +634,39 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
         <TouchableOpacity style={styles.backButton} onPress={handleExit}>
           <Text style={styles.backButtonText}>✕</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Morning Stretch</Text>
+        <Text style={styles.headerTitle}>
+          {isStrengthHabit ? 'Strength Training' : 'Morning Stretch'}
+        </Text>
         <View style={styles.placeholder} />
       </View>
 
       {/* Content */}
       {!isStarted ? renderPreSession() : renderActiveSession()}
+      
+      {/* Achievement Overlay */}
+      <AchievementBurst
+        show={showAchievement}
+        achievement={currentAchievement || {
+          title: '',
+          description: '',
+          icon: '',
+          color: theme.colors.primary.blue,
+        }}
+        onComplete={() => {
+          setShowAchievement(false);
+          setCurrentAchievement(null);
+        }}
+      />
+      
+      {/* Music Selection Modal */}
+      <MusicSelectionModal
+        visible={showMusicModal}
+        onClose={() => setShowMusicModal(false)}
+        onMusicSelected={handleMusicSelection}
+        habitName={habit?.name}
+        currentTrackId={selectedMusicId}
+        showRecommendations={true}
+      />
     </SafeAreaView>
   );
 };
@@ -560,6 +718,140 @@ const styles = StyleSheet.create({
     padding: theme.spacing.lg,
     paddingBottom: theme.spacing.xxl,
   },
+  // New Duolingo-inspired styles
+  welcomeHeader: {
+    alignItems: 'center',
+    marginBottom: theme.spacing.xl,
+    paddingTop: theme.spacing.md,
+  },
+  welcomeEmoji: {
+    fontSize: 48,
+    marginBottom: theme.spacing.sm,
+  },
+  welcomeTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: theme.colors.text.inverse,
+    marginBottom: theme.spacing.xs,
+    textAlign: 'center',
+  },
+  welcomeSubtitle: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.9)',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  habitIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: theme.spacing.md,
+  },
+  habitIcon: {
+    fontSize: 28,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: theme.spacing.md,
+    paddingTop: theme.spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+  },
+  statItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statIcon: {
+    fontSize: 18,
+    marginBottom: theme.spacing.xs,
+  },
+  statText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.primary.green,
+  },
+  statDivider: {
+    width: 1,
+    height: 20,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    marginHorizontal: theme.spacing.sm,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: theme.spacing.md,
+  },
+  sectionIcon: {
+    fontSize: 20,
+    marginRight: theme.spacing.sm,
+  },
+  instructionRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: theme.spacing.md,
+  },
+  instructionBullet: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: theme.colors.primary.green,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: theme.spacing.md,
+    marginTop: 2,
+  },
+  instructionBulletText: {
+    color: theme.colors.text.inverse,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  startButtonContent: {
+    alignItems: 'center',
+  },
+  startButtonEmoji: {
+    fontSize: 24,
+    marginBottom: theme.spacing.xs,
+  },
+  startButtonSubtext: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.9)',
+    marginTop: theme.spacing.xs,
+    fontWeight: '500',
+  },
+  streakContainer: {
+    marginTop: theme.spacing.lg,
+    alignItems: 'center',
+  },
+  streakBadge: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 20,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  streakIcon: {
+    fontSize: 18,
+    marginRight: theme.spacing.xs,
+  },
+  streakNumber: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: theme.colors.text.inverse,
+    marginRight: theme.spacing.xs,
+  },
+  streakLabel: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.9)',
+    fontWeight: '600',
+  },
   headerCard: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.lg,
@@ -606,69 +898,150 @@ const styles = StyleSheet.create({
   startButton: {
     backgroundColor: theme.colors.secondary.orange,
     borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
+    padding: theme.spacing.xl,
     alignItems: 'center',
     marginTop: theme.spacing.xl,
     marginBottom: theme.spacing.lg,
+    shadowColor: theme.colors.secondary.orange,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+    transform: [{ scale: 1 }],
   },
   startButtonText: {
     color: theme.colors.text.inverse,
-    fontSize: theme.typography.sizes.lg,
-    fontWeight: theme.typography.weights.bold,
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   sessionContainer: {
     flex: 1,
+  },
+  sessionContent: {
     padding: theme.spacing.lg,
+    paddingBottom: theme.spacing.xxl,
   },
   progressContainer: {
     marginBottom: theme.spacing.xl,
+    paddingHorizontal: theme.spacing.md,
   },
   progressBar: {
-    height: 6,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    borderRadius: 3,
-    marginBottom: theme.spacing.sm,
+    height: 8,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 4,
+    marginBottom: theme.spacing.md,
+    overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
     backgroundColor: theme.colors.secondary.orange,
-    borderRadius: 3,
+    borderRadius: 4,
+    shadowColor: theme.colors.secondary.orange,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 3,
   },
   progressText: {
     color: theme.colors.text.inverse,
-    fontSize: theme.typography.sizes.sm,
+    fontSize: 16,
     textAlign: 'center',
+    fontWeight: '600',
+    letterSpacing: 0.3,
   },
   timerContainer: {
     alignItems: 'center',
     marginBottom: theme.spacing.xl,
   },
-  timerCircle: {
+  timerOuterRing: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  timerInnerRing: {
     width: 120,
     height: 120,
     borderRadius: 60,
     backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 3,
+    borderWidth: 2,
     borderColor: theme.colors.secondary.orange,
   },
+  timerCore: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  breathingIndicator: {
+    marginTop: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 2,
+    backgroundColor: 'rgba(76, 175, 80, 0.2)',
+    borderRadius: 12,
+  },
+  breathingText: {
+    fontSize: 10,
+    color: theme.colors.primary.green,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
   timerText: {
-    color: theme.colors.text.inverse,
-    fontSize: 28,
-    fontWeight: theme.typography.weights.bold,
+    color: theme.colors.primary.green,
+    fontSize: 32,
+    fontWeight: '800',
+    letterSpacing: -1,
   },
   timerLabel: {
-    color: theme.colors.text.inverse,
-    fontSize: theme.typography.sizes.sm,
-    opacity: 0.8,
+    color: theme.colors.text.secondary,
+    fontSize: 12,
+    fontWeight: '500',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginTop: 2,
   },
-  stepCard: {
+  stepHeaderCard: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.lg,
-    marginBottom: theme.spacing.xl,
+    marginBottom: theme.spacing.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  stepHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  stepIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: theme.spacing.md,
+  },
+  stepIcon: {
+    fontSize: 24,
+  },
+  stepTitleContainer: {
     flex: 1,
+    paddingTop: theme.spacing.xs,
   },
   stepTitle: {
     fontSize: theme.typography.sizes.xl,
@@ -679,16 +1052,6 @@ const styles = StyleSheet.create({
   stepDescription: {
     fontSize: theme.typography.sizes.md,
     color: theme.colors.text.secondary,
-    marginBottom: theme.spacing.lg,
-  },
-  instructionsContainer: {
-    flex: 1,
-  },
-  stepInstruction: {
-    fontSize: theme.typography.sizes.md,
-    color: theme.colors.text.primary,
-    marginBottom: theme.spacing.md,
-    lineHeight: 22,
   },
   controlsContainer: {
     flexDirection: 'row',
@@ -769,5 +1132,69 @@ const styles = StyleSheet.create({
   },
   audioQuickButtonText: {
     fontSize: 20,
+  },
+
+
+  // Music Selection Styles
+  musicSelectionCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.md,
+    marginHorizontal: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  musicSelectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.sm,
+  },
+  musicSelectionTitle: {
+    fontSize: theme.typography.sizes.md,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.colors.text.primary,
+  },
+  changeMusicButton: {
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+    backgroundColor: theme.colors.primary.blue,
+    borderRadius: theme.borderRadius.sm,
+  },
+  changeMusicButtonText: {
+    fontSize: theme.typography.sizes.sm,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.colors.text.inverse,
+  },
+  selectedMusicItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: theme.spacing.sm,
+  },
+  selectedMusicIcon: {
+    fontSize: 24,
+    marginRight: theme.spacing.sm,
+  },
+  selectedMusicInfo: {
+    flex: 1,
+  },
+  selectedMusicName: {
+    fontSize: theme.typography.sizes.md,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.colors.text.primary,
+    marginBottom: 2,
+  },
+  selectedMusicDescription: {
+    fontSize: theme.typography.sizes.sm,
+    color: theme.colors.text.secondary,
+  },
+  selectedMusicArrow: {
+    fontSize: 20,
+    color: theme.colors.text.secondary,
+    marginLeft: theme.spacing.sm,
   },
 });
