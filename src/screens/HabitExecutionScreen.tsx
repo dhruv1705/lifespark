@@ -157,11 +157,9 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
         musicVolume,
       });
 
-      // Start audio session
-      // Note: You'll need to place your MP3 file in assets/audio/ and update this line
-      // const musicFile = require('../../assets/audio/your-music-file.mp3');
-      // For now, we'll start without music but with speech
-      await audioManager.initialize();
+      // Start audio session with background music
+      const musicFile = require('../../assets/audio/angelical.mp3');
+      await audioManager.startSession(musicFile);
       
       if (speechEnabled) {
         await audioManager.speakExerciseStart(

@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { theme } from '../theme';
 
@@ -18,6 +19,7 @@ export const AuthScreen: React.FC = () => {
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleAuth = async () => {
     if (!email || !password) {
@@ -73,14 +75,26 @@ export const AuthScreen: React.FC = () => {
               autoCapitalize="none"
               autoCorrect={false}
             />
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoCapitalize="none"
-            />
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="Password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+              />
+              <TouchableOpacity
+                style={styles.eyeIcon}
+                onPress={() => setShowPassword(!showPassword)}
+              >
+                <Ionicons
+                  name={showPassword ? 'eye-off' : 'eye'}
+                  size={24}
+                  color={theme.colors.text.secondary}
+                />
+              </TouchableOpacity>
+            </View>
 
             <TouchableOpacity
               style={[styles.button, loading && styles.buttonDisabled]}
@@ -148,6 +162,25 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.sizes.md,
     borderWidth: 1,
     borderColor: theme.colors.border,
+  },
+  passwordContainer: {
+    position: 'relative',
+    marginBottom: theme.spacing.md,
+  },
+  passwordInput: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    paddingRight: 50,
+    fontSize: theme.typography.sizes.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: theme.spacing.md,
+    top: '50%',
+    transform: [{ translateY: -12 }],
   },
   button: {
     backgroundColor: theme.colors.primary.blue,
