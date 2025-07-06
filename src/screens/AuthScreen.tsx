@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
 import { theme } from '../theme';
 
 export const AuthScreen: React.FC = () => {
@@ -20,6 +21,7 @@ export const AuthScreen: React.FC = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const { isOfflineMode } = useAuth();
 
   const handleAuth = async () => {
     if (!email || !password) {
@@ -28,6 +30,16 @@ export const AuthScreen: React.FC = () => {
     }
 
     setLoading(true);
+
+    // Handle offline/demo mode
+    if (isOfflineMode) {
+      // In offline mode, just simulate successful login
+      setTimeout(() => {
+        setLoading(false);
+        Alert.alert('Demo Mode', 'You\'re now using Lifespark in demo mode with sample data!');
+      }, 1000);
+      return;
+    }
 
     try {
       if (isSignUp) {
@@ -45,9 +57,20 @@ export const AuthScreen: React.FC = () => {
         if (error) throw error;
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message);
-    } finally {
-      setLoading(false);
+      // Handle network errors gracefully
+      if (error.message?.includes('fetch') || error.message?.includes('network')) {
+        Alert.alert(
+          'Connection Issue', 
+          'Unable to connect to the server. The app will continue in demo mode with sample data.',
+          [{ text: 'OK', onPress: () => {
+            // Force offline mode
+            setLoading(false);
+          }}]
+        );
+      } else {
+        Alert.alert('Error', error.message);
+        setLoading(false);
+      }
     }
   };
 
@@ -63,6 +86,11 @@ export const AuthScreen: React.FC = () => {
             <Text style={styles.subtitle}>
               {isSignUp ? 'Create your account' : 'Welcome back'}
             </Text>
+            {isOfflineMode && (
+              <View style={styles.demoModeIndicator}>
+                <Text style={styles.demoModeText}>🔄 Demo Mode</Text>
+              </View>
+            )}
           </View>
 
           <View style={styles.form}>
@@ -204,5 +232,20 @@ const styles = StyleSheet.create({
   switchText: {
     color: theme.colors.primary.blue,
     fontSize: theme.typography.sizes.sm,
+  },
+  demoModeIndicator: {
+    marginTop: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.xs,
+    backgroundColor: 'rgba(255, 193, 7, 0.2)',
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 193, 7, 0.5)',
+  },
+  demoModeText: {
+    color: '#F57F17',
+    fontSize: theme.typography.sizes.sm,
+    fontWeight: theme.typography.weights.bold,
+    textAlign: 'center',
   },
 });

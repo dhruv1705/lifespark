@@ -98,13 +98,18 @@ class AudioManager {
   }
 
   async endSession(sessionType: 'stretch' | 'strength' = 'stretch') {
-    if (this.settings.speechEnabled && elevenLabsSpeech.isConfigured()) {
-      if (sessionType === 'strength') {
-        await elevenLabsSpeech.speakStrengthCompletion();
-      } else {
-        await elevenLabsSpeech.speakCompletion();
-      }
-    }
+    // Queue completion speech with highest priority
+    const text = sessionType === 'strength'
+      ? "INCREDIBLE! You just built serious strength! Feel those muscles - they're thanking you for every single rep. You've earned every bit of that XP!"
+      : "Beautiful work! You've completed your morning stretch routine. Notice how your body feels - more relaxed, more centered. Carry this peaceful energy with you throughout your day.";
+    
+    this.queueSpeech(text, 'completion', 'high', { 
+      cannotInterrupt: true, 
+      sessionType 
+    });
+    
+    // Wait for completion speech to finish before stopping music
+    await speechQueue.waitForCurrent();
     
     await backgroundMusic.stop();
     await backgroundMusic.unloadMusic();

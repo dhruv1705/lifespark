@@ -252,11 +252,12 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
     setCurrentStepIndex(nextStepIndex);
     setStepTimeRemaining(nextStep.duration);
 
-    // Voice transition to next exercise
+    // Voice transition to next exercise with session type awareness
     try {
       await audioManager.speakTransition(
         currentStep.title,
-        nextStep.title
+        nextStep.title,
+        isStrengthHabit ? 'strength' : 'stretch'
       );
     } catch (error) {
       console.error('Error speaking transition:', error);
