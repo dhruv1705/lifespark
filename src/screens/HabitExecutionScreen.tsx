@@ -19,6 +19,10 @@ import { getInteractiveHabitData } from '../data/interactiveHabits';
 import { theme } from '../theme';
 import { dataSync, DATA_SYNC_EVENTS } from '../utils/dataSync';
 import { audioManager } from '../services/audioManager';
+import { AchievementBurst } from '../components/AchievementBurst';
+import { DynamicInstructions } from '../components/DynamicInstructions';
+import { Achievement } from '../services/gamification';
+import { MusicSelectionModal } from '../components/MusicSelectionModal';
 
 type HabitExecutionScreenNavigationProp = StackNavigationProp<RootStackParamList, 'HabitExecution'>;
 type HabitExecutionScreenRouteProp = RouteProp<RootStackParamList, 'HabitExecution'>;
@@ -49,8 +53,14 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
   
   // Audio state
   const [musicEnabled, setMusicEnabled] = useState(true);
-  const [speechEnabled, setSpeechEnabled] = useState(true);
   const [musicVolume, setMusicVolume] = useState(0.3);
+
+  const [showAchievement, setShowAchievement] = useState(false);
+  const [currentAchievement, setCurrentAchievement] = useState<Achievement | null>(null);
+
+  // Music selection states
+  const [showMusicModal, setShowMusicModal] = useState(false);
+  const [selectedMusicId, setSelectedMusicId] = useState('angelical');
 
   // Load habit data
   useEffect(() => {
@@ -71,27 +81,6 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
     if (isStarted && !isPaused && stepTimeRemaining > 0) {
       interval = setInterval(() => {
         setStepTimeRemaining(prev => {
-          // Smart speech timing to prevent conflicts
-          if (isStrengthHabit) {
-            // For strength training, prioritize milestones over encouragement
-            if (prev === 5) {
-              // Milestone speeches have higher priority and clear encouragement
-              audioManager.speakStrengthMilestone(currentStepIndex + 1, habit?.steps?.length || 10).catch(console.error);
-            } else if (prev === 10 && currentStepIndex < 3) {
-              // Only encourage on early reps to reduce speech spam
-              audioManager.speakRepEncouragement(currentStepIndex + 1, habit?.steps?.length || 10).catch(console.error);
-            }
-          } else {
-            // Original stretch voice alerts with spacing
-            if (prev === 11) {
-              audioManager.speakTimeAlert(10).catch(console.error);
-            } else if (prev === 6) {
-              audioManager.speakTimeAlert(5).catch(console.error);
-            } else if (prev === 4) {
-              audioManager.speakTimeAlert(3).catch(console.error);
-            }
-          }
-
           if (prev <= 1) {
             // Step completed, move to next
             handleStepComplete();
@@ -136,11 +125,15 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
       const enhancedHabit = getInteractiveHabitData(habitId, baseHabit);
       setHabit(enhancedHabit);
       
-      // Detect if this is a strength training habit
+      // Detect habit types
       const isStrength = baseHabit.name.toLowerCase().includes('push-up') || 
                         baseHabit.name.toLowerCase().includes('pushup') ||
                         baseHabit.name.toLowerCase().includes('push up');
       setIsStrengthHabit(isStrength);
+
+      // Load music preferences
+      const smartRecommendation = audioManager.getSmartMusicRecommendation(baseHabit.name);
+      setSelectedMusicId(smartRecommendation.id);
 
       // Initialize session for guided habits
       if (enhancedHabit.executionType === 'guided' && enhancedHabit.steps) {
@@ -172,35 +165,16 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
       // Configure audio settings
       audioManager.updateSettings({
         musicEnabled,
-        speechEnabled,
         musicVolume,
       });
 
-      // Start audio session with background music
+      // Start audio session with selected background music
       try {
-        const musicFile = isStrengthHabit 
-          ? require('../../assets/audio/angelical.mp3') // For now, use same file - can be changed later
-          : require('../../assets/audio/angelical.mp3');
-        await audioManager.startSession(musicFile);
+        await audioManager.startSession(habit?.name);
       } catch (audioError) {
         console.warn('⚠️ Could not load background music, continuing without audio:', audioError);
         // Initialize audio manager without music file
         await audioManager.initialize();
-      }
-      
-      if (speechEnabled) {
-        try {
-          if (isStrengthHabit) {
-            await audioManager.speakStrengthWelcome();
-          } else {
-            await audioManager.speakExerciseStart(
-              habit?.steps?.[0]?.title || 'your first stretch',
-              habit?.steps?.[0]?.description || ''
-            );
-          }
-        } catch (speechError) {
-          console.warn('⚠️ Speech functionality unavailable:', speechError);
-        }
       }
       
       console.log('🎯 Session started with audio');
@@ -225,6 +199,28 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
     } catch (error) {
       console.error('Error handling pause/resume audio:', error);
     }
+  };
+
+
+  const handleMusicSelection = async (trackId: string) => {
+    setSelectedMusicId(trackId);
+    await audioManager.setSelectedMusic(trackId, habit?.name);
+    console.log(`🎵 Music selected: ${trackId} for ${habit?.name}`);
+  };
+
+  const handleMusicSwitch = async () => {
+    if (!isStarted) {
+      setShowMusicModal(true);
+    } else {
+      // Quick switch between the two main tracks
+      const newTrackId = selectedMusicId === 'angelical' ? 'upbeat' : 'angelical';
+      setSelectedMusicId(newTrackId);
+      await audioManager.switchMusic(newTrackId, habit?.name);
+    }
+  };
+
+  const getMusicDisplayInfo = () => {
+    return audioManager.getMusicDisplayInfo(selectedMusicId);
   };
 
   const handleStepComplete = async () => {
@@ -252,16 +248,6 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
     setCurrentStepIndex(nextStepIndex);
     setStepTimeRemaining(nextStep.duration);
 
-    // Voice transition to next exercise with session type awareness
-    try {
-      await audioManager.speakTransition(
-        currentStep.title,
-        nextStep.title,
-        isStrengthHabit ? 'strength' : 'stretch'
-      );
-    } catch (error) {
-      console.error('Error speaking transition:', error);
-    }
   };
 
   const handleSessionComplete = async () => {
@@ -374,13 +360,16 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
     <ScrollView style={styles.preSessionContainer} showsVerticalScrollIndicator={false}>
       {/* Welcome Header with Gradient */}
       <View style={styles.welcomeHeader}>
-        <Text style={styles.welcomeEmoji}>{isStrengthHabit ? '🔥' : '🌅'}</Text>
-        <Text style={styles.welcomeTitle}>{isStrengthHabit ? 'Power Up Time!' : 'Rise & Shine!'}</Text>
+        <Text style={styles.welcomeEmoji}>
+          {isStrengthHabit ? '🔥' : '🌅'}
+        </Text>
+        <Text style={styles.welcomeTitle}>
+          {isStrengthHabit ? 'Power Up Time!' : 'Rise & Shine!'}
+        </Text>
         <Text style={styles.welcomeSubtitle}>
           {isStrengthHabit 
             ? 'Ready to build that strength? Let\'s crush those reps together!' 
-            : 'Time to awaken your body with gentle movement'
-          }
+            : 'Time to awaken your body with gentle movement'}
         </Text>
         
         {/* Streak Counter */}
@@ -395,14 +384,15 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
 
       <View style={styles.headerCard}>
         <View style={styles.habitIconContainer}>
-          <Text style={styles.habitIcon}>{isStrengthHabit ? '💪' : '🧘‍♀️'}</Text>
+          <Text style={styles.habitIcon}>
+            {isStrengthHabit ? '💪' : '🧘‍♀️'}
+          </Text>
         </View>
         <Text style={styles.habitTitle}>{habit?.name}</Text>
         <Text style={styles.habitDescription}>
           {isStrengthHabit 
             ? 'Every rep makes you stronger' 
-            : 'Give your body the perfect start to the day'
-          }
+            : 'Give your body the perfect start to the day'}
         </Text>
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
@@ -411,7 +401,9 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={styles.statIcon}>{isStrengthHabit ? '🏋️‍♂️' : '🤸‍♀️'}</Text>
+            <Text style={styles.statIcon}>
+              {isStrengthHabit ? '🏋️‍♂️' : '🤸‍♀️'}
+            </Text>
             <Text style={styles.statText}>
               {habit?.steps?.length} {isStrengthHabit ? 'reps' : 'stretches'}
             </Text>
@@ -465,27 +457,44 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
           </TouchableOpacity>
         </View>
 
-        <View style={styles.audioToggleRow}>
-          <Text style={styles.audioToggleLabel}>🗣️ Voice Guidance</Text>
+      </View>
+
+      {/* Music Selection */}
+      <View style={styles.musicSelectionCard}>
+        <View style={styles.musicSelectionHeader}>
+          <Text style={styles.musicSelectionTitle}>🎵 Background Music</Text>
           <TouchableOpacity
-            style={[styles.audioToggle, speechEnabled && styles.audioToggleActive]}
-            onPress={async () => {
-              setSpeechEnabled(!speechEnabled);
-              if (isStarted) {
-                await audioManager.toggleSpeech();
-              }
-            }}
+            style={styles.changeMusicButton}
+            onPress={() => setShowMusicModal(true)}
           >
-            <Text style={[styles.audioToggleText, speechEnabled && styles.audioToggleTextActive]}>
-              {speechEnabled ? 'ON' : 'OFF'}
-            </Text>
+            <Text style={styles.changeMusicButtonText}>Change</Text>
           </TouchableOpacity>
         </View>
+        
+        <TouchableOpacity 
+          style={styles.selectedMusicItem}
+          onPress={() => setShowMusicModal(true)}
+        >
+          <Text style={styles.selectedMusicIcon}>
+            {getMusicDisplayInfo()?.icon || '🎵'}
+          </Text>
+          <View style={styles.selectedMusicInfo}>
+            <Text style={styles.selectedMusicName}>
+              {getMusicDisplayInfo()?.title || 'Calm & Peaceful'}
+            </Text>
+            <Text style={styles.selectedMusicDescription}>
+              {getMusicDisplayInfo()?.subtitle || 'Perfect for your workout'}
+            </Text>
+          </View>
+          <Text style={styles.selectedMusicArrow}>›</Text>
+        </TouchableOpacity>
       </View>
 
       <TouchableOpacity style={styles.startButton} onPress={handleStartSession}>
         <View style={styles.startButtonContent}>
-          <Text style={styles.startButtonEmoji}>{isStrengthHabit ? '💪' : '🌟'}</Text>
+          <Text style={styles.startButtonEmoji}>
+            {isStrengthHabit ? '💪' : '🌟'}
+          </Text>
           <Text style={styles.startButtonText}>
             {isStrengthHabit ? 'LET\'S BUILD STRENGTH!' : 'Begin Your Morning Journey'}
           </Text>
@@ -503,7 +512,11 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
     const progress = ((currentStepIndex) / totalSteps) * 100;
 
     return (
-      <View style={styles.sessionContainer}>
+      <ScrollView 
+        style={styles.sessionContainer}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.sessionContent}
+      >
         {/* Progress Bar */}
         <View style={styles.progressContainer}>
           <View style={styles.progressBar}>
@@ -531,8 +544,8 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
           </View>
         </View>
 
-        {/* Current Step */}
-        <View style={styles.stepCard}>
+        {/* Current Step Header */}
+        <View style={styles.stepHeaderCard}>
           <View style={styles.stepHeader}>
             <View style={styles.stepIconContainer}>
               <Text style={styles.stepIcon}>{isStrengthHabit ? '🏋️‍♂️' : '🧘‍♀️'}</Text>
@@ -542,15 +555,20 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
               <Text style={styles.stepDescription}>{currentStep?.description}</Text>
             </View>
           </View>
-          
-          <ScrollView style={styles.instructionsContainer} showsVerticalScrollIndicator={false}>
-            {currentStep?.instructions.map((instruction, index) => (
-              <Text key={index} style={styles.stepInstruction}>
-                {index + 1}. {instruction}
-              </Text>
-            ))}
-          </ScrollView>
         </View>
+
+        {/* Dynamic Instructions */}
+        <DynamicInstructions
+          instructions={currentStep?.instructions || []}
+          stepDuration={habit?.steps?.[currentStepIndex]?.duration || 30}
+          stepTimeRemaining={stepTimeRemaining}
+          isActive={isStarted && !isPaused}
+          isPaused={isPaused}
+          onInstructionChange={(index, instruction) => {
+            // Could trigger additional voice guidance here if needed
+            console.log(`Instruction ${index + 1}: ${instruction}`);
+          }}
+        />
 
         {/* Controls */}
         <View style={styles.controlsContainer}>
@@ -584,18 +602,18 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={[styles.audioQuickButton, !speechEnabled && styles.audioQuickButtonMuted]}
-            onPress={async () => {
-              setSpeechEnabled(!speechEnabled);
-              await audioManager.toggleSpeech();
-            }}
+            style={styles.audioQuickButton}
+            onPress={handleMusicSwitch}
           >
-            <Text style={styles.audioQuickButtonText}>{speechEnabled ? '🗣️' : '🤐'}</Text>
+            <Text style={styles.audioQuickButtonText}>
+              {getMusicDisplayInfo()?.icon || '🎶'}
+            </Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </ScrollView>
     );
   };
+
 
   if (loading) {
     return (
@@ -624,6 +642,31 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
 
       {/* Content */}
       {!isStarted ? renderPreSession() : renderActiveSession()}
+      
+      {/* Achievement Overlay */}
+      <AchievementBurst
+        show={showAchievement}
+        achievement={currentAchievement || {
+          title: '',
+          description: '',
+          icon: '',
+          color: theme.colors.primary.blue,
+        }}
+        onComplete={() => {
+          setShowAchievement(false);
+          setCurrentAchievement(null);
+        }}
+      />
+      
+      {/* Music Selection Modal */}
+      <MusicSelectionModal
+        visible={showMusicModal}
+        onClose={() => setShowMusicModal(false)}
+        onMusicSelected={handleMusicSelection}
+        habitName={habit?.name}
+        currentTrackId={selectedMusicId}
+        showRecommendations={true}
+      />
     </SafeAreaView>
   );
 };
@@ -631,7 +674,6 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    background: 'linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%)',
     backgroundColor: theme.colors.primary.green,
   },
   header: {
@@ -875,7 +917,10 @@ const styles = StyleSheet.create({
   },
   sessionContainer: {
     flex: 1,
+  },
+  sessionContent: {
     padding: theme.spacing.lg,
+    paddingBottom: theme.spacing.xxl,
   },
   progressContainer: {
     marginBottom: theme.spacing.xl,
@@ -967,12 +1012,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginTop: 2,
   },
-  stepCard: {
+  stepHeaderCard: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.lg,
-    marginBottom: theme.spacing.xl,
-    flex: 1,
+    marginBottom: theme.spacing.md,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -982,7 +1026,6 @@ const styles = StyleSheet.create({
   stepHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: theme.spacing.lg,
   },
   stepIconContainer: {
     width: 50,
@@ -1009,16 +1052,6 @@ const styles = StyleSheet.create({
   stepDescription: {
     fontSize: theme.typography.sizes.md,
     color: theme.colors.text.secondary,
-    marginBottom: theme.spacing.lg,
-  },
-  instructionsContainer: {
-    flex: 1,
-  },
-  stepInstruction: {
-    fontSize: theme.typography.sizes.md,
-    color: theme.colors.text.primary,
-    marginBottom: theme.spacing.md,
-    lineHeight: 22,
   },
   controlsContainer: {
     flexDirection: 'row',
@@ -1099,5 +1132,69 @@ const styles = StyleSheet.create({
   },
   audioQuickButtonText: {
     fontSize: 20,
+  },
+
+
+  // Music Selection Styles
+  musicSelectionCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.md,
+    marginHorizontal: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  musicSelectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.sm,
+  },
+  musicSelectionTitle: {
+    fontSize: theme.typography.sizes.md,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.colors.text.primary,
+  },
+  changeMusicButton: {
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+    backgroundColor: theme.colors.primary.blue,
+    borderRadius: theme.borderRadius.sm,
+  },
+  changeMusicButtonText: {
+    fontSize: theme.typography.sizes.sm,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.colors.text.inverse,
+  },
+  selectedMusicItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: theme.spacing.sm,
+  },
+  selectedMusicIcon: {
+    fontSize: 24,
+    marginRight: theme.spacing.sm,
+  },
+  selectedMusicInfo: {
+    flex: 1,
+  },
+  selectedMusicName: {
+    fontSize: theme.typography.sizes.md,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.colors.text.primary,
+    marginBottom: 2,
+  },
+  selectedMusicDescription: {
+    fontSize: theme.typography.sizes.sm,
+    color: theme.colors.text.secondary,
+  },
+  selectedMusicArrow: {
+    fontSize: 20,
+    color: theme.colors.text.secondary,
+    marginLeft: theme.spacing.sm,
   },
 });

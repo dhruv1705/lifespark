@@ -74,6 +74,11 @@ export const AuthScreen: React.FC = () => {
     }
   };
 
+  const handleAutoFill = () => {
+    setEmail('john@gmail.com');
+    setPassword('John123456');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView 
@@ -143,6 +148,16 @@ export const AuthScreen: React.FC = () => {
                   ? 'Already have an account? Sign In' 
                   : "Don't have an account? Sign Up"
                 }
+              </Text>
+            </TouchableOpacity>
+
+            {/* Auto Fill Button */}
+            <TouchableOpacity
+              style={styles.autoFillButton}
+              onPress={handleAutoFill}
+            >
+              <Text style={styles.autoFillButtonText}>
+                ⚡ Auto Fill for Testing
               </Text>
             </TouchableOpacity>
           </View>
@@ -247,5 +262,17 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.sizes.sm,
     fontWeight: theme.typography.weights.bold,
     textAlign: 'center',
+  },
+  autoFillButton: {
+    backgroundColor: theme.colors.primary.orange,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    alignItems: 'center',
+    marginTop: theme.spacing.md,
+  },
+  autoFillButtonText: {
+    color: '#000000',
+    fontSize: theme.typography.sizes.md,
+    fontWeight: theme.typography.weights.bold,
   },
 });

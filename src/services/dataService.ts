@@ -42,6 +42,17 @@ const DEMO_HABITS: Habit[] = [
     level: 'Building',
     created_at: new Date().toISOString()
   },
+  { 
+    id: '3', 
+    goal_id: '2', 
+    name: '10 Squats', 
+    description: 'Build lower body strength and power',
+    frequency: 'daily',
+    duration: 240,
+    xp: 18,
+    level: 'Building',
+    created_at: new Date().toISOString()
+  },
 ];
 
 export class DataService {

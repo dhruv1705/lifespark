@@ -221,6 +221,7 @@ export const morningStretchSteps: HabitStep[] = [
   }
 ];
 
+
 // Function to get enhanced habit data for interactive habits
 export const getInteractiveHabitData = (habitId: string, baseHabit: Habit): Habit => {
   // Check if this is the morning stretch habit
@@ -259,6 +260,7 @@ export const getInteractiveHabitData = (habitId: string, baseHabit: Habit): Habi
       ]
     };
   }
+
 
   // For other habits, return as simple toggle for now
   return {
