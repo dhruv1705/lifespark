@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Habit } from '../types';
 import { theme } from '../theme';
 import { getInteractiveHabitData } from '../data/interactiveHabits';
+import { ReminderSetupModal } from './ReminderSetupModal';
+import { reminderStorage } from '../services/reminderStorage';
+import { HabitReminder } from '../services/notificationService';
 
 interface HabitCardProps {
   habit: Habit;
@@ -15,12 +18,39 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onToggle, onExecute
   const enhancedHabit = getInteractiveHabitData(habit.id, habit);
   const isInteractive = enhancedHabit.executionType === 'guided' || enhancedHabit.executionType === 'timed';
   
+  // Reminder state
+  const [showReminderModal, setShowReminderModal] = useState(false);
+  const [currentReminder, setCurrentReminder] = useState<HabitReminder | null>(null);
+
+  // Load existing reminder
+  useEffect(() => {
+    loadReminder();
+  }, [habit.id]);
+
+  const loadReminder = async () => {
+    try {
+      const reminder = await reminderStorage.getReminder(habit.id);
+      setCurrentReminder(reminder);
+    } catch (error) {
+      console.error('Error loading reminder:', error);
+    }
+  };
+  
   const handlePress = () => {
     if (isInteractive && onExecute) {
       onExecute();
     } else {
       onToggle();
     }
+  };
+
+  const handleAlarmPress = (e: any) => {
+    e.stopPropagation(); // Prevent triggering habit press
+    setShowReminderModal(true);
+  };
+
+  const handleReminderSaved = (reminder: HabitReminder) => {
+    setCurrentReminder(reminder);
   };
 
   const getLevelLabel = (level: number) => {
@@ -54,9 +84,45 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onToggle, onExecute
     >
       <View style={styles.header}>
         <View style={styles.leftHeader}>
-          <Text style={styles.name}>{habit.name}</Text>
-          <View style={[styles.levelBadge, { backgroundColor: getLevelColor(habit.level) }]}>
-            <Text style={styles.levelText}>{getLevelLabel(habit.level)}</Text>
+          <View style={styles.nameRow}>
+            <Text style={styles.name}>{habit.name}</Text>
+            <TouchableOpacity 
+              style={styles.alarmButton} 
+              onPress={handleAlarmPress}
+            >
+              <Text style={styles.alarmIcon}>
+                {currentReminder?.enabled ? '⏰' : '⏰'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.badgeRow}>
+            <View style={[styles.levelBadge, { backgroundColor: getLevelColor(habit.level) }]}>
+              <Text style={styles.levelText}>{getLevelLabel(habit.level)}</Text>
+            </View>
+            {currentReminder?.enabled && (
+              <Text style={styles.reminderTime}>
+                {(() => {
+                  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                  const formattedTime = reminderStorage.formatTimeForDisplay(currentReminder.time);
+                  
+                  switch (currentReminder.reminderType) {
+                    case 'daily':
+                      return `Daily ${formattedTime}`;
+                    case 'weekly':
+                      return `${dayNames[currentReminder.dayOfWeek!]} ${formattedTime}`;
+                    case 'monthly':
+                      const suffix = currentReminder.dayOfMonth === 1 ? 'st' : currentReminder.dayOfMonth === 2 ? 'nd' : currentReminder.dayOfMonth === 3 ? 'rd' : 'th';
+                      return `Monthly ${currentReminder.dayOfMonth}${suffix} ${formattedTime}`;
+                    case 'once':
+                      return currentReminder.specificDate 
+                        ? `${new Date(currentReminder.specificDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} ${formattedTime}`
+                        : formattedTime;
+                    default:
+                      return formattedTime;
+                  }
+                })()}
+              </Text>
+            )}
           </View>
         </View>
         <View style={styles.rightHeader}>
@@ -73,6 +139,15 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onToggle, onExecute
         </View>
       </View>
       <Text style={styles.description}>{habit.description}</Text>
+      
+      {/* Reminder Setup Modal */}
+      <ReminderSetupModal
+        visible={showReminderModal}
+        onClose={() => setShowReminderModal(false)}
+        habitId={habit.id}
+        habitName={habit.name}
+        onReminderSaved={handleReminderSaved}
+      />
     </TouchableOpacity>
   );
 };
@@ -100,6 +175,17 @@ const styles = StyleSheet.create({
   leftHeader: {
     flex: 1,
   },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: theme.spacing.xs,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
   rightHeader: {
     alignItems: 'flex-end',
   },
@@ -107,7 +193,20 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.sizes.lg,
     fontWeight: theme.typography.weights.bold,
     color: theme.colors.text.primary,
-    marginBottom: theme.spacing.xs,
+    flex: 1,
+  },
+  alarmButton: {
+    padding: 4,
+    marginLeft: theme.spacing.sm,
+  },
+  alarmIcon: {
+    fontSize: 16,
+    opacity: 0.7,
+  },
+  reminderTime: {
+    fontSize: theme.typography.sizes.xs,
+    color: theme.colors.primary.green,
+    fontWeight: theme.typography.weights.bold,
   },
   levelBadge: {
     paddingHorizontal: theme.spacing.sm,

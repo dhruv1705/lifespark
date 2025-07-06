@@ -65,5 +65,20 @@ export type RootStackParamList = {
 export type BottomTabParamList = {
   HomeTab: undefined;
   ProgressTab: undefined;
+  ScheduleTab: undefined;
   ProfileTab: undefined;
 };
+
+export interface ScheduledTask {
+  id: string;
+  title: string;
+  description?: string;
+  scheduledDateTime: Date;
+  isCompleted: boolean;
+  type: 'habit' | 'custom' | 'event';
+  habitId?: string; // if linked to habit
+  reminder?: boolean;
+  created_at: Date;
+}
+
+export type ScheduleViewType = 'day' | 'week' | 'month';
