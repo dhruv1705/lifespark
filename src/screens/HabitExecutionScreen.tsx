@@ -337,7 +337,7 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
   };
 
   const renderPreSession = () => (
-    <View style={styles.preSessionContainer}>
+    <ScrollView style={styles.preSessionContainer} showsVerticalScrollIndicator={false}>
       <View style={styles.headerCard}>
         <Text style={styles.habitTitle}>{habit?.name}</Text>
         <Text style={styles.habitDescription}>{habit?.description}</Text>
@@ -397,7 +397,7 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
       <TouchableOpacity style={styles.startButton} onPress={handleStartSession}>
         <Text style={styles.startButtonText}>Start Stretching 🧘‍♀️</Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 
   const renderActiveSession = () => {
@@ -558,6 +558,7 @@ const styles = StyleSheet.create({
   preSessionContainer: {
     flex: 1,
     padding: theme.spacing.lg,
+    paddingBottom: theme.spacing.xxl,
   },
   headerCard: {
     backgroundColor: theme.colors.surface,
@@ -607,7 +608,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.lg,
     alignItems: 'center',
-    marginTop: 'auto',
+    marginTop: theme.spacing.xl,
     marginBottom: theme.spacing.lg,
   },
   startButtonText: {
