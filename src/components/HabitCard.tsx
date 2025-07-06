@@ -2,13 +2,27 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Habit } from '../types';
 import { theme } from '../theme';
+import { getInteractiveHabitData } from '../data/interactiveHabits';
 
 interface HabitCardProps {
   habit: Habit;
   onToggle: () => void;
+  onExecute?: () => void;
 }
 
-export const HabitCard: React.FC<HabitCardProps> = ({ habit, onToggle }) => {
+export const HabitCard: React.FC<HabitCardProps> = ({ habit, onToggle, onExecute }) => {
+  // Check if this is an interactive habit
+  const enhancedHabit = getInteractiveHabitData(habit.id, habit);
+  const isInteractive = enhancedHabit.executionType === 'guided' || enhancedHabit.executionType === 'timed';
+  
+  const handlePress = () => {
+    if (isInteractive && onExecute) {
+      onExecute();
+    } else {
+      onToggle();
+    }
+  };
+
   const getLevelLabel = (level: number) => {
     switch (level) {
       case 1: return 'Foundation';
@@ -31,8 +45,12 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onToggle }) => {
 
   return (
     <TouchableOpacity 
-      style={[styles.card, habit.completed && styles.completedCard]} 
-      onPress={onToggle}
+      style={[
+        styles.card, 
+        habit.completed && styles.completedCard,
+        isInteractive && styles.interactiveCard
+      ]} 
+      onPress={handlePress}
     >
       <View style={styles.header}>
         <View style={styles.leftHeader}>
@@ -43,9 +61,15 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onToggle }) => {
         </View>
         <View style={styles.rightHeader}>
           <Text style={styles.xp}>+{habit.xp} XP</Text>
-          <View style={[styles.checkbox, habit.completed && styles.checkedBox]}>
-            {habit.completed && <Text style={styles.checkmark}>✓</Text>}
-          </View>
+          {isInteractive ? (
+            <View style={styles.playButton}>
+              <Text style={styles.playIcon}>▶️</Text>
+            </View>
+          ) : (
+            <View style={[styles.checkbox, habit.completed && styles.checkedBox]}>
+              {habit.completed && <Text style={styles.checkmark}>✓</Text>}
+            </View>
+          )}
         </View>
       </View>
       <Text style={styles.description}>{habit.description}</Text>
@@ -124,5 +148,21 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.sizes.md,
     color: theme.colors.text.secondary,
     lineHeight: 18,
+  },
+  interactiveCard: {
+    borderLeftColor: theme.colors.primary.green,
+    backgroundColor: '#f8fff8',
+  },
+  playButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: theme.colors.primary.green,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  playIcon: {
+    fontSize: 12,
+    marginLeft: 2, // Slight adjustment for visual centering
   },
 });

@@ -26,6 +26,13 @@ export const theme = {
       inverse: '#FFFFFF',
     },
     border: '#E0E0E0',
+    // Level System Colors
+    levels: {
+      foundation: '#10B981',  // Green
+      building: '#007AFF',    // Blue
+      power: '#FF6B6B',       // Orange
+      mastery: '#8B5CF6',     // Purple
+    },
   },
   spacing: {
     xs: 4,

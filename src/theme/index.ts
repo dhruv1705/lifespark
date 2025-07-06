@@ -23,10 +23,12 @@ export const theme = {
       xl: 18,
       xxl: 20,
       title: 24,
+      heading: 28,
     },
     weights: {
       normal: '400' as const,
       medium: '500' as const,
+      semibold: '600' as const,
       bold: '700' as const,
     }
   },

@@ -52,6 +52,17 @@ export class DataService {
     return data || [];
   }
 
+  static async getHabitById(habitId: string): Promise<Habit | null> {
+    const { data, error } = await supabase
+      .from('habits')
+      .select('*')
+      .eq('id', habitId)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') throw error;
+    return data || null;
+  }
+
   static async getUserGoals(userId: string): Promise<UserGoal[]> {
     const { data, error } = await supabase
       .from('user_goals')
@@ -510,5 +521,67 @@ export class DataService {
     
     if (error) throw error;
     return data?.reduce((sum, completion) => sum + completion.xp_earned, 0) || 0;
+  }
+
+  // Record partial completion for interactive habits
+  static async recordPartialCompletion(
+    userId: string, 
+    habitId: string, 
+    xpEarned: number, 
+    completionPercent: number
+  ): Promise<void> {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Check if there's already a completion for today
+      const { data: existing } = await supabase
+        .from('daily_completions')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('habit_id', habitId)
+        .eq('completed_date', today)
+        .single();
+
+      if (existing) {
+        // Update existing completion if this is better
+        if (xpEarned > (existing.xp_earned || 0)) {
+          await supabase
+            .from('daily_completions')
+            .update({
+              xp_earned: xpEarned,
+              completion_percent: completionPercent,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', existing.id);
+        }
+      } else {
+        // Create new partial completion record
+        await supabase
+          .from('daily_completions')
+          .insert({
+            user_id: userId,
+            habit_id: habitId,
+            completed_date: today,
+            xp_earned: xpEarned,
+            completion_percent: completionPercent,
+            is_partial: true,
+            completed_at: new Date().toISOString(),
+          });
+      }
+
+      // Update user habit stats
+      await supabase
+        .from('user_habits')
+        .upsert({
+          user_id: userId,
+          habit_id: habitId,
+          last_completed: new Date().toISOString(),
+          total_completions: (await this.getUserHabit(userId, habitId))?.total_completions || 0 + (completionPercent >= 1.0 ? 1 : 0),
+        });
+
+    } catch (error) {
+      console.error('Error recording partial completion:', error);
+      throw error;
+    }
   }
 }
