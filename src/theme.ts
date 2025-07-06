@@ -1,12 +1,12 @@
 export const theme = {
   colors: {
     primary: {
-      green: '#10B981',
-      blue: '#007AFF',
+      green: '#10B981', //green
+      blue: '#007AFF', //blue
     },
     secondary: {
-      orange: '#FF6B6B',
-      purple: '#8B5CF6',
+      orange: '#6DC6AA', //green
+      purple: '#8B5CF6', 
     },
     neutral: {
       white: '#FFFFFF',

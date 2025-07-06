@@ -18,6 +18,7 @@ import { useAuth } from '../context/AuthContext';
 import { getInteractiveHabitData } from '../data/interactiveHabits';
 import { theme } from '../theme';
 import { dataSync, DATA_SYNC_EVENTS } from '../utils/dataSync';
+import { audioManager } from '../services/audioManager';
 
 type HabitExecutionScreenNavigationProp = StackNavigationProp<RootStackParamList, 'HabitExecution'>;
 type HabitExecutionScreenRouteProp = RouteProp<RootStackParamList, 'HabitExecution'>;
@@ -44,11 +45,23 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
   const [isPaused, setIsPaused] = useState(false);
   const [isStarted, setIsStarted] = useState(false);
   const [loading, setLoading] = useState(true);
+  
+  // Audio state
+  const [musicEnabled, setMusicEnabled] = useState(true);
+  const [speechEnabled, setSpeechEnabled] = useState(true);
+  const [musicVolume, setMusicVolume] = useState(0.3);
 
   // Load habit data
   useEffect(() => {
     loadHabitData();
   }, [habitId]);
+
+  // Audio cleanup on unmount
+  useEffect(() => {
+    return () => {
+      audioManager.endSession().catch(console.error);
+    };
+  }, []);
 
   // Timer effect
   useEffect(() => {
@@ -57,6 +70,15 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
     if (isStarted && !isPaused && stepTimeRemaining > 0) {
       interval = setInterval(() => {
         setStepTimeRemaining(prev => {
+          // Voice alerts for time remaining
+          if (prev === 11) {
+            audioManager.speakTimeAlert(10).catch(console.error);
+          } else if (prev === 6) {
+            audioManager.speakTimeAlert(5).catch(console.error);
+          } else if (prev === 4) {
+            audioManager.speakTimeAlert(3).catch(console.error);
+          }
+
           if (prev <= 1) {
             // Step completed, move to next
             handleStepComplete();
@@ -123,16 +145,56 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
     }
   };
 
-  const handleStartSession = () => {
-    setIsStarted(true);
-    setIsPaused(false);
+  const handleStartSession = async () => {
+    try {
+      setIsStarted(true);
+      setIsPaused(false);
+
+      // Configure audio settings
+      audioManager.updateSettings({
+        musicEnabled,
+        speechEnabled,
+        musicVolume,
+      });
+
+      // Start audio session
+      // Note: You'll need to place your MP3 file in assets/audio/ and update this line
+      // const musicFile = require('../../assets/audio/your-music-file.mp3');
+      // For now, we'll start without music but with speech
+      await audioManager.initialize();
+      
+      if (speechEnabled) {
+        await audioManager.speakExerciseStart(
+          habit?.steps?.[0]?.title || 'your first stretch',
+          habit?.steps?.[0]?.description || ''
+        );
+      }
+      
+      console.log('🎯 Session started with audio');
+    } catch (error) {
+      console.error('Error starting audio session:', error);
+      // Continue without audio if there's an error
+      setIsStarted(true);
+      setIsPaused(false);
+    }
   };
 
-  const handlePauseResume = () => {
-    setIsPaused(prev => !prev);
+  const handlePauseResume = async () => {
+    const willBePaused = !isPaused;
+    setIsPaused(willBePaused);
+
+    try {
+      if (willBePaused) {
+        await audioManager.pauseSession();
+      } else {
+        await audioManager.resumeSession();
+      }
+    } catch (error) {
+      console.error('Error handling pause/resume audio:', error);
+    }
   };
 
-  const handleStepComplete = () => {
+  const handleStepComplete = async () => {
     if (!habit?.steps || !session) return;
 
     const currentStep = habit.steps[currentStepIndex];
@@ -151,14 +213,30 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
     }
 
     // Move to next step
-    setCurrentStepIndex(prev => prev + 1);
-    setStepTimeRemaining(habit.steps[currentStepIndex + 1].duration);
+    const nextStepIndex = currentStepIndex + 1;
+    const nextStep = habit.steps[nextStepIndex];
+    
+    setCurrentStepIndex(nextStepIndex);
+    setStepTimeRemaining(nextStep.duration);
+
+    // Voice transition to next exercise
+    try {
+      await audioManager.speakTransition(
+        currentStep.title,
+        nextStep.title
+      );
+    } catch (error) {
+      console.error('Error speaking transition:', error);
+    }
   };
 
   const handleSessionComplete = async () => {
     if (!user || !habit) return;
 
     try {
+      // End audio session with completion message
+      await audioManager.endSession();
+
       // Mark habit as completed and award XP
       await DataService.toggleHabitCompletion(user.id, habitId, habit.xp);
       
@@ -277,6 +355,45 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
         ))}
       </View>
 
+      {/* Audio Settings */}
+      <View style={styles.audioSettingsCard}>
+        <Text style={styles.sectionTitle}>Audio Settings</Text>
+        
+        <View style={styles.audioToggleRow}>
+          <Text style={styles.audioToggleLabel}>🎵 Background Music</Text>
+          <TouchableOpacity
+            style={[styles.audioToggle, musicEnabled && styles.audioToggleActive]}
+            onPress={async () => {
+              setMusicEnabled(!musicEnabled);
+              if (isStarted) {
+                await audioManager.toggleMusic();
+              }
+            }}
+          >
+            <Text style={[styles.audioToggleText, musicEnabled && styles.audioToggleTextActive]}>
+              {musicEnabled ? 'ON' : 'OFF'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.audioToggleRow}>
+          <Text style={styles.audioToggleLabel}>🗣️ Voice Guidance</Text>
+          <TouchableOpacity
+            style={[styles.audioToggle, speechEnabled && styles.audioToggleActive]}
+            onPress={async () => {
+              setSpeechEnabled(!speechEnabled);
+              if (isStarted) {
+                await audioManager.toggleSpeech();
+              }
+            }}
+          >
+            <Text style={[styles.audioToggleText, speechEnabled && styles.audioToggleTextActive]}>
+              {speechEnabled ? 'ON' : 'OFF'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <TouchableOpacity style={styles.startButton} onPress={handleStartSession}>
         <Text style={styles.startButtonText}>Start Stretching 🧘‍♀️</Text>
       </TouchableOpacity>
@@ -338,6 +455,29 @@ export const HabitExecutionScreen: React.FC<HabitExecutionScreenProps> = ({
             onPress={handleStepComplete}
           >
             <Text style={styles.controlButtonText}>Skip ⏭️</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Audio Quick Controls */}
+        <View style={styles.audioQuickControls}>
+          <TouchableOpacity 
+            style={[styles.audioQuickButton, !musicEnabled && styles.audioQuickButtonMuted]}
+            onPress={async () => {
+              setMusicEnabled(!musicEnabled);
+              await audioManager.toggleMusic();
+            }}
+          >
+            <Text style={styles.audioQuickButtonText}>{musicEnabled ? '🎵' : '🔇'}</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.audioQuickButton, !speechEnabled && styles.audioQuickButtonMuted]}
+            onPress={async () => {
+              setSpeechEnabled(!speechEnabled);
+              await audioManager.toggleSpeech();
+            }}
+          >
+            <Text style={styles.audioQuickButtonText}>{speechEnabled ? '🗣️' : '🤐'}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -569,5 +709,64 @@ const styles = StyleSheet.create({
     color: theme.colors.text.inverse,
     fontSize: theme.typography.sizes.md,
     fontWeight: theme.typography.weights.semibold,
+  },
+  // Audio Settings Styles
+  audioSettingsCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.lg,
+    marginBottom: theme.spacing.lg,
+  },
+  audioToggleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.md,
+  },
+  audioToggleLabel: {
+    fontSize: theme.typography.sizes.md,
+    color: theme.colors.text.primary,
+    flex: 1,
+  },
+  audioToggle: {
+    backgroundColor: theme.colors.neutral.mediumGray,
+    borderRadius: theme.borderRadius.md,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    minWidth: 50,
+    alignItems: 'center',
+  },
+  audioToggleActive: {
+    backgroundColor: theme.colors.primary.green,
+  },
+  audioToggleText: {
+    fontSize: theme.typography.sizes.sm,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.colors.text.secondary,
+  },
+  audioToggleTextActive: {
+    color: theme.colors.text.inverse,
+  },
+  // Audio Quick Controls
+  audioQuickControls: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: theme.spacing.lg,
+    marginTop: theme.spacing.md,
+  },
+  audioQuickButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  audioQuickButtonMuted: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    opacity: 0.6,
+  },
+  audioQuickButtonText: {
+    fontSize: 20,
   },
 });
