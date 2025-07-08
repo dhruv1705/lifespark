@@ -60,6 +60,7 @@ export type RootStackParamList = {
   Goals: { categoryId: string };
   Habits: { goalId: string };
   HabitExecution: { habitId: string };
+  Video: undefined;
 };
 
 export type BottomTabParamList = {

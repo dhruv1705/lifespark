@@ -116,7 +116,7 @@ export const HabitsScreen: React.FC<HabitsScreenProps> = ({ navigation, route })
   };
 
   const handleHabitExecution = (habitId: string) => {
-    navigation.navigate('HabitExecution', { habitId });
+    navigation.navigate('Video');
   };
 
   const totalXP = habitsList.reduce((sum, habit) => sum + (habit.completed ? habit.xp : 0), 0);

@@ -38,6 +38,9 @@
         "projectId": "566ebb60-09ae-4d60-9528-0826a65bf47d"
       }
     },
-    "owner": "zolatte"
+    "owner": "zolatte",
+    "plugins": [
+      "expo-video"
+    ]
   }
 }

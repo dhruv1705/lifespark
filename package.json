@@ -9,11 +9,13 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@eva-design/eva": "^2.2.0",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-navigation/bottom-tabs": "^7.4.2",
     "@react-navigation/native": "^7.1.14",
     "@react-navigation/stack": "^7.4.2",
     "@supabase/supabase-js": "^2.50.3",
+    "@ui-kitten/components": "^5.3.1",
     "axios": "^1.10.0",
     "expo": "~53.0.17",
     "expo-av": "^15.1.7",
@@ -25,7 +27,10 @@
     "react-native-gesture-handler": "^2.27.1",
     "react-native-safe-area-context": "^5.5.1",
     "react-native-screens": "^4.11.1",
-    "react-native-url-polyfill": "^2.0.0"
+    "react-native-url-polyfill": "^2.0.0",
+    "react-native-video": "^6.16.0",
+    "react-native-video-player": "^0.16.3",
+    "expo-video": "~2.2.2"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

@@ -8,6 +8,8 @@ import { BottomTabNavigator } from './src/navigation/BottomTabNavigator';
 import { ActivityIndicator, View } from 'react-native';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { theme } from './src/theme';
+import { ApplicationProvider } from '@ui-kitten/components';
+import * as eva from '@eva-design/eva';
 
 const AppNavigator = () => {
   const { session, loading } = useAuth();
@@ -35,11 +37,13 @@ const AppNavigator = () => {
 export default function App() {
   return (
     <ErrorBoundary>
-      <SafeAreaProvider>
-        <AuthProvider>
-          <AppNavigator />
-        </AuthProvider>
-      </SafeAreaProvider>
+      <ApplicationProvider {...eva} theme={eva.light}>
+        <SafeAreaProvider>
+          <AuthProvider>
+            <AppNavigator />
+          </AuthProvider>
+        </SafeAreaProvider>
+      </ApplicationProvider>
     </ErrorBoundary>
   );
 }

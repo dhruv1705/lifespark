@@ -55,8 +55,15 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onToggle, onExecute
       <View style={styles.header}>
         <View style={styles.leftHeader}>
           <Text style={styles.name}>{habit.name}</Text>
-          <View style={[styles.levelBadge, { backgroundColor: getLevelColor(habit.level) }]}>
-            <Text style={styles.levelText}>{getLevelLabel(habit.level)}</Text>
+          <View style={{flexDirection: 'row', alignItems: 'center'}}>
+            <View style={[styles.levelBadge, { backgroundColor: getLevelColor(habit.level) }]}> 
+              <Text style={styles.levelText}>{getLevelLabel(habit.level)}</Text>
+            </View>
+            {isInteractive && (
+              <TouchableOpacity style={[styles.playButton, {marginLeft: 8}]} onPress={onExecute} activeOpacity={0.7}>
+                <Text style={styles.playIcon}>🎥</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
         <View style={styles.rightHeader}>

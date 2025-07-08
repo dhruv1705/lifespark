@@ -9,6 +9,7 @@ import { HabitsScreen } from '../screens/HabitsScreen';
 import { HabitExecutionScreen } from '../screens/HabitExecutionScreen';
 import { ProgressScreen } from '../screens/ProgressScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
+import Video from '../screens/Video';
 import { BottomTabParamList, RootStackParamList } from '../types';
 import { theme } from '../theme';
 
@@ -50,6 +51,11 @@ const HomeStackNavigator = () => {
         name="HabitExecution" 
         component={HabitExecutionScreen}
         options={{ headerShown: false }}
+      />
+      <HomeStack.Screen 
+        name="Video" 
+        component={Video}
+        options={{ title: 'Video' }}
       />
     </HomeStack.Navigator>
   );
