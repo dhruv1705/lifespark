@@ -27,6 +27,11 @@ export interface Habit {
   duration?: number; // in seconds
   steps?: HabitStep[];
   instructions?: string[];
+  // Video properties
+  videoUrl?: string;
+  videoThumbnailUrl?: string;
+  videoTitle?: string;
+  videoDuration?: string;
 }
 
 export interface HabitStep {
@@ -60,6 +65,7 @@ export type RootStackParamList = {
   Goals: { categoryId: string };
   Habits: { goalId: string };
   HabitExecution: { habitId: string };
+  VideoPlayer: { videoUrl: string; title?: string };
 };
 
 export type BottomTabParamList = {
@@ -82,3 +88,10 @@ export interface ScheduledTask {
 }
 
 export type ScheduleViewType = 'day' | 'week' | 'month';
+
+export interface VideoConfig {
+  videoUrl: string;
+  thumbnailUrl: string;
+  duration: string;
+  title: string;
+}

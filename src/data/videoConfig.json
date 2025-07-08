@@ -1,0 +1,14 @@
+{
+  "5-min Morning Stretch": {
+    "videoUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "thumbnailUrl": "https://img.youtube.com/vi/qQW8msiv7u4/maxresdefault.jpg",
+    "duration": "5:30",
+    "title": "5 Minute Morning Stretch Routine"
+  },
+  "Healthy Breakfast": {
+    "videoUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+    "thumbnailUrl": "https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
+    "duration": "3:45",
+    "title": "Quick Healthy Breakfast Ideas"
+  }
+}
