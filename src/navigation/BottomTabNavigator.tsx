@@ -8,6 +8,7 @@ import { GoalsScreen } from '../screens/GoalsScreen';
 import { HabitsScreen } from '../screens/HabitsScreen';
 import { HabitExecutionScreen } from '../screens/HabitExecutionScreen';
 import { ProgressScreen } from '../screens/ProgressScreen';
+import { ScheduleScreen } from '../screens/ScheduleScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { BottomTabParamList, RootStackParamList } from '../types';
 import { theme } from '../theme';
@@ -68,6 +69,8 @@ export const BottomTabNavigator = () => {
             iconName = focused ? 'home' : 'home-outline';
           } else if (route.name === 'ProgressTab') {
             iconName = focused ? 'stats-chart' : 'stats-chart-outline';
+          } else if (route.name === 'ScheduleTab') {
+            iconName = focused ? 'calendar' : 'calendar-outline';
           } else if (route.name === 'ProfileTab') {
             iconName = focused ? 'person' : 'person-outline';
           } else {
@@ -117,6 +120,14 @@ export const BottomTabNavigator = () => {
           },
           headerTintColor: theme.colors.text.primary,
           headerTitle: 'Progress',
+        }}
+      />
+      <Tab.Screen 
+        name="ScheduleTab" 
+        component={ScheduleScreen}
+        options={{
+          title: 'Schedule',
+          headerShown: false,
         }}
       />
       <Tab.Screen 
