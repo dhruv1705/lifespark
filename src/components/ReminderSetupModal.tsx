@@ -216,7 +216,12 @@ export const ReminderSetupModal: React.FC<ReminderSetupModalProps> = ({
           <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
             <Text style={styles.cancelButtonText}>Cancel</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Daily Reminder</Text>
+          <Text style={styles.headerTitle}>
+            {reminderType === 'daily' && 'Daily Reminder'}
+            {reminderType === 'weekly' && 'Weekly Reminder'}
+            {reminderType === 'monthly' && 'Monthly Reminder'}
+            {reminderType === 'once' && 'One-time Reminder'}
+          </Text>
           <TouchableOpacity 
             style={[styles.saveButton, loading && styles.saveButtonDisabled]} 
             onPress={handleSave}

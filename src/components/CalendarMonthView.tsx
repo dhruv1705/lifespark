@@ -229,11 +229,11 @@ const styles = StyleSheet.create({
     color: theme.colors.text.secondary,
   },
   calendarGrid: {
-    gap: 2,
+    paddingVertical: 2,
   },
   weekRow: {
     flexDirection: 'row',
-    gap: 2,
+    marginHorizontal: 2,
   },
   dayCell: {
     width: dayWidth,
@@ -275,7 +275,6 @@ const styles = StyleSheet.create({
     bottom: 4,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
   },
   taskDot: {
     width: 8,
@@ -299,6 +298,7 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
     backgroundColor: theme.colors.secondary.orange,
+    marginLeft: 2,
   },
   taskCount: {
     fontSize: 6,

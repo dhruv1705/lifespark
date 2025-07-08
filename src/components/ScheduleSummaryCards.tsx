@@ -24,7 +24,7 @@ export const ScheduleSummaryCards: React.FC<ScheduleSummaryCardsProps> = ({
         <Text style={styles.label}>{label}</Text>
       </View>
       
-      <View style={styles.card}>
+      <View style={[styles.card, styles.lastCard]}>
         <Text style={[
           styles.number, 
           { color: completedTasks > 0 ? theme.colors.primary.green : theme.colors.primary.blue }
@@ -40,7 +40,6 @@ export const ScheduleSummaryCards: React.FC<ScheduleSummaryCardsProps> = ({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    gap: theme.spacing.md,
     marginBottom: theme.spacing.lg,
   },
   card: {
@@ -51,12 +50,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 80,
+    marginRight: theme.spacing.md,
   },
   number: {
     fontSize: 32,
     fontWeight: theme.typography.weights.bold,
     color: theme.colors.primary.blue,
     marginBottom: theme.spacing.xs,
+  },
+  lastCard: {
+    marginRight: 0,
   },
   label: {
     fontSize: theme.typography.sizes.sm,

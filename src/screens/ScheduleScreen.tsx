@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -39,25 +39,36 @@ export const ScheduleScreen: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [tasks, setTasks] = useState<ScheduledTask[]>([]);
   const [loading, setLoading] = useState(true);
+  const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Load tasks on component mount and when date changes
-  useEffect(() => {
-    loadTasks();
-  }, [selectedDate, viewType]);
+  // Debounced sync function to prevent excessive AsyncStorage writes
+  const debouncedSync = useCallback(async () => {
+    if (syncTimeoutRef.current) {
+      clearTimeout(syncTimeoutRef.current);
+    }
+    
+    return new Promise<void>((resolve) => {
+      syncTimeoutRef.current = setTimeout(async () => {
+        try {
+          await scheduleService.syncRemindersToSchedule();
+          resolve();
+        } catch (error) {
+          console.error('Error syncing reminders:', error);
+          resolve();
+        }
+      }, 300); // 300ms debounce
+    });
+  }, []);
 
-  // Refresh tasks when screen comes into focus (after setting reminders)
-  useFocusEffect(
-    React.useCallback(() => {
-      loadTasks();
-    }, [selectedDate, viewType])
-  );
-
-  const loadTasks = async () => {
+  // Optimized task loading function
+  const loadTasks = useCallback(async (shouldSync: boolean = false) => {
     try {
       setLoading(true);
       
-      // Sync reminders to schedule first
-      await scheduleService.syncRemindersToSchedule();
+      // Only sync when necessary (on focus or explicit request)
+      if (shouldSync) {
+        await debouncedSync();
+      }
       
       let tasksToShow: ScheduledTask[] = [];
       
@@ -81,7 +92,28 @@ export const ScheduleScreen: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [viewType, selectedDate, debouncedSync]);
+
+  // Load tasks on component mount and when date/view changes (without sync)
+  useEffect(() => {
+    loadTasks(false);
+  }, [loadTasks]);
+
+  // Refresh tasks when screen comes into focus (with sync for reminder updates)
+  useFocusEffect(
+    useCallback(() => {
+      loadTasks(true);
+    }, [loadTasks])
+  );
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (syncTimeoutRef.current) {
+        clearTimeout(syncTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Get current week date range
   const getWeekRange = (date: Date) => {

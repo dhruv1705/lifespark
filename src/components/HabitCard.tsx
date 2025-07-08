@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Habit } from '../types';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { Habit, RootStackParamList } from '../types';
 import { theme } from '../theme';
 import { getInteractiveHabitData } from '../data/interactiveHabits';
 import { ReminderSetupModal } from './ReminderSetupModal';
 import { reminderStorage } from '../services/reminderStorage';
 import { HabitReminder } from '../services/notificationService';
+import { hasVideo, getVideoConfig } from '../data/videoHelper';
 
 interface HabitCardProps {
   habit: Habit;
@@ -14,9 +17,15 @@ interface HabitCardProps {
 }
 
 export const HabitCard: React.FC<HabitCardProps> = ({ habit, onToggle, onExecute }) => {
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+  
   // Check if this is an interactive habit
   const enhancedHabit = getInteractiveHabitData(habit.id, habit);
   const isInteractive = enhancedHabit.executionType === 'guided' || enhancedHabit.executionType === 'timed';
+  
+  // Check if habit has video
+  const hasVideoContent = hasVideo(habit.name);
+  const videoConfig = getVideoConfig(habit.name);
   
   // Reminder state
   const [showReminderModal, setShowReminderModal] = useState(false);
@@ -47,6 +56,16 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onToggle, onExecute
   const handleAlarmPress = (e: any) => {
     e.stopPropagation(); // Prevent triggering habit press
     setShowReminderModal(true);
+  };
+
+  const handleVideoPress = (e: any) => {
+    e.stopPropagation(); // Prevent triggering habit press
+    if (videoConfig) {
+      navigation.navigate('VideoPlayer', {
+        videoUrl: videoConfig.videoUrl,
+        title: videoConfig.title || habit.name,
+      });
+    }
   };
 
   const handleReminderSaved = (reminder: HabitReminder) => {
@@ -91,7 +110,7 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onToggle, onExecute
               onPress={handleAlarmPress}
             >
               <Text style={styles.alarmIcon}>
-                {currentReminder?.enabled ? '⏰' : '⏰'}
+                ⏰
               </Text>
             </TouchableOpacity>
           </View>
@@ -127,15 +146,25 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onToggle, onExecute
         </View>
         <View style={styles.rightHeader}>
           <Text style={styles.xp}>+{habit.xp} XP</Text>
-          {isInteractive ? (
-            <View style={styles.playButton}>
-              <Text style={styles.playIcon}>▶️</Text>
-            </View>
-          ) : (
-            <View style={[styles.checkbox, habit.completed && styles.checkedBox]}>
-              {habit.completed && <Text style={styles.checkmark}>✓</Text>}
-            </View>
-          )}
+          <View style={styles.actionButtons}>
+            {hasVideoContent && (
+              <TouchableOpacity 
+                style={styles.videoButton}
+                onPress={handleVideoPress}
+              >
+                <Text style={styles.videoIcon}>📹</Text>
+              </TouchableOpacity>
+            )}
+            {isInteractive ? (
+              <View style={styles.playButton}>
+                <Text style={styles.playIcon}>▶️</Text>
+              </View>
+            ) : (
+              <View style={[styles.checkbox, habit.completed && styles.checkedBox]}>
+                {habit.completed && <Text style={styles.checkmark}>✓</Text>}
+              </View>
+            )}
+          </View>
         </View>
       </View>
       <Text style={styles.description}>{habit.description}</Text>
@@ -263,5 +292,21 @@ const styles = StyleSheet.create({
   playIcon: {
     fontSize: 12,
     marginLeft: 2, // Slight adjustment for visual centering
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  videoButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: theme.colors.secondary.orange,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  videoIcon: {
+    fontSize: 14,
   },
 });
