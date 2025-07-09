@@ -6,7 +6,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CategoriesScreen } from '../screens/CategoriesScreen';
 import { GoalsScreen } from '../screens/GoalsScreen';
 import { HabitsScreen } from '../screens/HabitsScreen';
+import { HabitExecutionScreen } from '../screens/HabitExecutionScreen';
+import { VideoPlayerScreen } from '../screens/VideoPlayerScreen';
 import { ProgressScreen } from '../screens/ProgressScreen';
+import { ScheduleScreen } from '../screens/ScheduleScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { BottomTabParamList, RootStackParamList } from '../types';
 import { theme } from '../theme';
@@ -45,6 +48,19 @@ const HomeStackNavigator = () => {
         component={HabitsScreen}
         options={{ title: 'Habits' }}
       />
+      <HomeStack.Screen 
+        name="HabitExecution" 
+        component={HabitExecutionScreen}
+        options={{ headerShown: false }}
+      />
+      <HomeStack.Screen 
+        name="VideoPlayer" 
+        component={VideoPlayerScreen}
+        options={{ 
+          headerShown: false,
+          presentation: 'fullScreenModal',
+        }}
+      />
     </HomeStack.Navigator>
   );
 };
@@ -62,6 +78,8 @@ export const BottomTabNavigator = () => {
             iconName = focused ? 'home' : 'home-outline';
           } else if (route.name === 'ProgressTab') {
             iconName = focused ? 'stats-chart' : 'stats-chart-outline';
+          } else if (route.name === 'ScheduleTab') {
+            iconName = focused ? 'calendar' : 'calendar-outline';
           } else if (route.name === 'ProfileTab') {
             iconName = focused ? 'person' : 'person-outline';
           } else {
@@ -111,6 +129,14 @@ export const BottomTabNavigator = () => {
           },
           headerTintColor: theme.colors.text.primary,
           headerTitle: 'Progress',
+        }}
+      />
+      <Tab.Screen 
+        name="ScheduleTab" 
+        component={ScheduleScreen}
+        options={{
+          title: 'Schedule',
+          headerShown: false,
         }}
       />
       <Tab.Screen 

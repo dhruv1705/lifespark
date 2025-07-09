@@ -8,26 +8,98 @@ type UserGoal = Database['public']['Tables']['user_goals']['Row'];
 type UserHabit = Database['public']['Tables']['user_habits']['Row'];
 type DailyCompletion = Database['public']['Tables']['daily_completions']['Row'];
 
+// Demo data for offline mode
+const DEMO_CATEGORIES: Category[] = [
+  { id: '1', name: 'Health & Wellness', description: 'Physical and mental well-being', created_at: new Date().toISOString() },
+  { id: '2', name: 'Personal Growth', description: 'Self-improvement and learning', created_at: new Date().toISOString() },
+];
+
+const DEMO_GOALS: Goal[] = [
+  { id: '1', category_id: '1', name: 'Morning Routine', description: 'Start each day with intention', created_at: new Date().toISOString() },
+  { id: '2', category_id: '1', name: 'Fitness Journey', description: 'Build strength and endurance', created_at: new Date().toISOString() },
+];
+
+const DEMO_HABITS: Habit[] = [
+  { 
+    id: '1', 
+    goal_id: '1', 
+    name: 'Morning Stretch', 
+    description: 'Gentle stretching to awaken the body',
+    frequency: 'daily',
+    duration: 300,
+    xp: 10,
+    level: 'Foundation',
+    created_at: new Date().toISOString()
+  },
+  { 
+    id: '2', 
+    goal_id: '2', 
+    name: 'Push-ups', 
+    description: 'Build upper body strength',
+    frequency: 'daily',
+    duration: 180,
+    xp: 15,
+    level: 'Building',
+    created_at: new Date().toISOString()
+  },
+  { 
+    id: '3', 
+    goal_id: '2', 
+    name: '10 Squats', 
+    description: 'Build lower body strength and power',
+    frequency: 'daily',
+    duration: 240,
+    xp: 18,
+    level: 'Building',
+    created_at: new Date().toISOString()
+  },
+];
+
 export class DataService {
+  private static isOfflineMode(): boolean {
+    const isValidConfig = process.env.EXPO_PUBLIC_SUPABASE_URL && 
+                         process.env.EXPO_PUBLIC_SUPABASE_URL !== 'your-supabase-url-here' &&
+                         process.env.EXPO_PUBLIC_SUPABASE_URL !== 'https://placeholder.supabase.co';
+    return !isValidConfig;
+  }
+
   static async getCategories(): Promise<Category[]> {
-    const { data, error } = await supabase
-      .from('categories')
-      .select('*')
-      .order('created_at');
-    
-    if (error) throw error;
-    return data || [];
+    if (this.isOfflineMode()) {
+      return DEMO_CATEGORIES;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('created_at');
+      
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.warn('DataService: Failed to fetch categories, using demo data:', error);
+      return DEMO_CATEGORIES;
+    }
   }
 
   static async getGoalsByCategory(categoryId: string): Promise<Goal[]> {
-    const { data, error } = await supabase
-      .from('goals')
-      .select('*')
-      .eq('category_id', categoryId)
-      .order('created_at');
-    
-    if (error) throw error;
-    return data || [];
+    if (this.isOfflineMode()) {
+      return DEMO_GOALS.filter(goal => goal.category_id === categoryId);
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('goals')
+        .select('*')
+        .eq('category_id', categoryId)
+        .order('created_at');
+      
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.warn('DataService: Failed to fetch goals, using demo data:', error);
+      return DEMO_GOALS.filter(goal => goal.category_id === categoryId);
+    }
   }
 
   static async getGoalById(goalId: string): Promise<Goal | null> {
@@ -42,14 +114,43 @@ export class DataService {
   }
 
   static async getHabitsByGoal(goalId: string): Promise<Habit[]> {
-    const { data, error } = await supabase
-      .from('habits')
-      .select('*')
-      .eq('goal_id', goalId)
-      .order('level', { ascending: true });
-    
-    if (error) throw error;
-    return data || [];
+    if (this.isOfflineMode()) {
+      return DEMO_HABITS.filter(habit => habit.goal_id === goalId);
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('habits')
+        .select('*')
+        .eq('goal_id', goalId)
+        .order('level', { ascending: true });
+      
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.warn('DataService: Failed to fetch habits, using demo data:', error);
+      return DEMO_HABITS.filter(habit => habit.goal_id === goalId);
+    }
+  }
+
+  static async getHabitById(habitId: string): Promise<Habit | null> {
+    if (this.isOfflineMode()) {
+      return DEMO_HABITS.find(habit => habit.id === habitId) || null;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('habits')
+        .select('*')
+        .eq('id', habitId)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') throw error;
+      return data || null;
+    } catch (error) {
+      console.warn('DataService: Failed to fetch habit, using demo data:', error);
+      return DEMO_HABITS.find(habit => habit.id === habitId) || null;
+    }
   }
 
   static async getUserGoals(userId: string): Promise<UserGoal[]> {
@@ -111,16 +212,24 @@ export class DataService {
 
   static async toggleHabitCompletion(userId: string, habitId: string, xp: number): Promise<boolean> {
     console.log('🔄 Toggle habit completion:', { userId, habitId, xp });
-    const today = new Date().toISOString().split('T')[0];
     
-    // Check if already completed today
-    const { data: existing } = await supabase
-      .from('daily_completions')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('habit_id', habitId)
-      .eq('completed_date', today)
-      .single();
+    if (this.isOfflineMode()) {
+      // In offline mode, just simulate successful completion
+      console.log('📱 Offline mode: Simulating habit completion');
+      return true;
+    }
+
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Check if already completed today
+      const { data: existing } = await supabase
+        .from('daily_completions')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('habit_id', habitId)
+        .eq('completed_date', today)
+        .single();
 
     if (existing) {
       // Remove completion
@@ -173,6 +282,10 @@ export class DataService {
       await this.updateGoalProgress(userId, habitId);
       
       return true;
+    }
+    } catch (error) {
+      console.warn('DataService: Failed to toggle habit completion, simulating success:', error);
+      return true; // Return success in offline mode
     }
   }
 
@@ -510,5 +623,67 @@ export class DataService {
     
     if (error) throw error;
     return data?.reduce((sum, completion) => sum + completion.xp_earned, 0) || 0;
+  }
+
+  // Record partial completion for interactive habits
+  static async recordPartialCompletion(
+    userId: string, 
+    habitId: string, 
+    xpEarned: number, 
+    completionPercent: number
+  ): Promise<void> {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Check if there's already a completion for today
+      const { data: existing } = await supabase
+        .from('daily_completions')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('habit_id', habitId)
+        .eq('completed_date', today)
+        .single();
+
+      if (existing) {
+        // Update existing completion if this is better
+        if (xpEarned > (existing.xp_earned || 0)) {
+          await supabase
+            .from('daily_completions')
+            .update({
+              xp_earned: xpEarned,
+              completion_percent: completionPercent,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', existing.id);
+        }
+      } else {
+        // Create new partial completion record
+        await supabase
+          .from('daily_completions')
+          .insert({
+            user_id: userId,
+            habit_id: habitId,
+            completed_date: today,
+            xp_earned: xpEarned,
+            completion_percent: completionPercent,
+            is_partial: true,
+            completed_at: new Date().toISOString(),
+          });
+      }
+
+      // Update user habit stats
+      await supabase
+        .from('user_habits')
+        .upsert({
+          user_id: userId,
+          habit_id: habitId,
+          last_completed: new Date().toISOString(),
+          total_completions: (await this.getUserHabit(userId, habitId))?.total_completions || 0 + (completionPercent >= 1.0 ? 1 : 0),
+        });
+
+    } catch (error) {
+      console.error('Error recording partial completion:', error);
+      throw error;
+    }
   }
 }

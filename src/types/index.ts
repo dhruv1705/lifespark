@@ -22,6 +22,34 @@ export interface Habit {
   level: number;
   xp: number;
   completed: boolean;
+  // Interactive execution properties
+  executionType?: 'simple' | 'timed' | 'guided';
+  duration?: number; // in seconds
+  steps?: HabitStep[];
+  instructions?: string[];
+  // Video properties
+  videoUrl?: string;
+  videoThumbnailUrl?: string;
+  videoTitle?: string;
+  videoDuration?: string;
+}
+
+export interface HabitStep {
+  id: string;
+  title: string;
+  description: string;
+  duration: number; // in seconds
+  instructions: string[];
+  isCompleted?: boolean;
+}
+
+export interface HabitSession {
+  habitId: string;
+  startTime: Date;
+  currentStepIndex: number;
+  completedSteps: string[];
+  isPaused: boolean;
+  totalTimeElapsed: number;
 }
 
 export interface UserProgress {
@@ -36,10 +64,34 @@ export type RootStackParamList = {
   Categories: undefined;
   Goals: { categoryId: string };
   Habits: { goalId: string };
+  HabitExecution: { habitId: string };
+  VideoPlayer: { videoUrl: string; title?: string };
 };
 
 export type BottomTabParamList = {
   HomeTab: undefined;
   ProgressTab: undefined;
+  ScheduleTab: undefined;
   ProfileTab: undefined;
 };
+
+export interface ScheduledTask {
+  id: string;
+  title: string;
+  description?: string;
+  scheduledDateTime: Date;
+  isCompleted: boolean;
+  type: 'habit' | 'custom' | 'event';
+  habitId?: string; // if linked to habit
+  reminder?: boolean;
+  created_at: Date;
+}
+
+export type ScheduleViewType = 'day' | 'week' | 'month';
+
+export interface VideoConfig {
+  videoUrl: string;
+  thumbnailUrl: string;
+  duration: string;
+  title: string;
+}

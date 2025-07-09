@@ -1,12 +1,12 @@
 export const theme = {
   colors: {
     primary: {
-      green: '#10B981',
-      blue: '#007AFF',
+      green: '#10B981', //green
+      blue: '#007AFF', //blue
     },
     secondary: {
-      orange: '#FF6B6B',
-      purple: '#8B5CF6',
+      orange: '#6DC6AA', //green
+      purple: '#8B5CF6', 
     },
     neutral: {
       white: '#FFFFFF',
@@ -26,6 +26,13 @@ export const theme = {
       inverse: '#FFFFFF',
     },
     border: '#E0E0E0',
+    // Level System Colors
+    levels: {
+      foundation: '#10B981',  // Green
+      building: '#007AFF',    // Blue
+      power: '#FF6B6B',       // Orange
+      mastery: '#8B5CF6',     // Purple
+    },
   },
   spacing: {
     xs: 4,
