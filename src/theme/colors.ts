@@ -32,6 +32,7 @@ export const colors = {
     primary: '#424242',
     secondary: '#666666',
     inverse: '#FFFFFF',
+    disabled: '#A0A0A0',
   },
   border: '#E0E0E0',
   

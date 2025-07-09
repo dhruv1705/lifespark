@@ -3,16 +3,21 @@ import { NavigationContainer } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
+import { CelebrationProvider } from './src/context/CelebrationContext';
+import { CharacterProvider, useCharacter } from './src/context/CharacterContext';
 import { AuthScreen } from './src/screens/AuthScreen';
+import { CharacterSelectionScreen } from './src/screens/CharacterSelectionScreen';
 import { BottomTabNavigator } from './src/navigation/BottomTabNavigator';
 import { ActivityIndicator, View } from 'react-native';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
+import { CelebrationOverlay } from './src/components/CelebrationOverlay';
 import { theme } from './src/theme';
 import { notificationService } from './src/services/notificationService';
 import { scheduleService } from './src/services/scheduleService';
 
 const AppNavigator = () => {
   const { session, loading } = useAuth();
+  const { isCharacterSelected } = useCharacter();
 
   if (loading) {
     return (
@@ -26,10 +31,16 @@ const AppNavigator = () => {
     return <AuthScreen />;
   }
 
+  // Show character selection if user hasn't selected a character yet
+  if (!isCharacterSelected) {
+    return <CharacterSelectionScreen onComplete={() => {}} />;
+  }
+
   return (
     <NavigationContainer>
       <StatusBar style="dark" />
       <BottomTabNavigator />
+      <CelebrationOverlay />
     </NavigationContainer>
   );
 };
@@ -54,7 +65,11 @@ export default function App() {
     <ErrorBoundary>
       <SafeAreaProvider>
         <AuthProvider>
-          <AppNavigator />
+          <CelebrationProvider>
+            <CharacterProvider>
+              <AppNavigator />
+            </CharacterProvider>
+          </CelebrationProvider>
         </AuthProvider>
       </SafeAreaProvider>
     </ErrorBoundary>

@@ -6,7 +6,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CategoriesScreen } from '../screens/CategoriesScreen';
 import { GoalsScreen } from '../screens/GoalsScreen';
 import { HabitsScreen } from '../screens/HabitsScreen';
-import { HabitExecutionScreen } from '../screens/HabitExecutionScreen';
 import { VideoPlayerScreen } from '../screens/VideoPlayerScreen';
 import { ProgressScreen } from '../screens/ProgressScreen';
 import { ScheduleScreen } from '../screens/ScheduleScreen';
@@ -47,11 +46,6 @@ const HomeStackNavigator = () => {
         name="Habits" 
         component={HabitsScreen}
         options={{ title: 'Habits' }}
-      />
-      <HomeStack.Screen 
-        name="HabitExecution" 
-        component={HabitExecutionScreen}
-        options={{ headerShown: false }}
       />
       <HomeStack.Screen 
         name="VideoPlayer" 

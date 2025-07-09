@@ -115,9 +115,6 @@ export const HabitsScreen: React.FC<HabitsScreenProps> = ({ navigation, route })
     }
   };
 
-  const handleHabitExecution = (habitId: string) => {
-    navigation.navigate('HabitExecution', { habitId });
-  };
 
   const totalXP = habitsList.reduce((sum, habit) => sum + (habit.completed ? habit.xp : 0), 0);
   const completedCount = habitsList.filter(h => h.completed).length;
@@ -157,7 +154,6 @@ export const HabitsScreen: React.FC<HabitsScreenProps> = ({ navigation, route })
             key={habit.id}
             habit={habit}
             onToggle={() => handleHabitToggle(habit.id)}
-            onExecute={() => handleHabitExecution(habit.id)}
           />
         ))}
       </View>

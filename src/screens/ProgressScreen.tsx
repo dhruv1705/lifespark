@@ -1,11 +1,18 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, ActivityIndicator, Animated, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
+import { useCelebration } from '../context/CelebrationContext';
+import { useCharacter } from '../context/CharacterContext';
 import { DataService } from '../services/dataService';
 import { LevelProgressCard } from '../components/LevelProgressCard';
 import { DailyXPGoal } from '../components/DailyXPGoal';
+import { AchievementBadge } from '../components/AchievementBadge';
+import { AnimatedStatCard } from '../components/AnimatedStatCard';
+import { CharacterInteraction } from '../components/CharacterInteraction';
+import { CharacterHabitSuggestions } from '../components/CharacterHabitSuggestions';
 import { calculateUserLevel, UserLevel } from '../utils/levelSystem';
+import { gamification } from '../services/gamification';
 import { theme } from '../theme';
 import { dataSync, DATA_SYNC_EVENTS } from '../utils/dataSync';
 
@@ -22,10 +29,18 @@ interface UserStats {
 
 export const ProgressScreen: React.FC = () => {
   const { user } = useAuth();
+  const { triggerCelebration } = useCelebration();
+  const { updateCharacterProgress, triggerCharacterMessage, getMotivationalMessage } = useCharacter();
   const [stats, setStats] = useState<UserStats | null>(null);
   const [userLevel, setUserLevel] = useState<UserLevel | null>(null);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const previousStreak = useRef<number>(0);
+  const previousLevel = useRef<number>(0);
+  
+  // Animation values for the entire screen
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
     if (user) {
@@ -127,6 +142,84 @@ export const ProgressScreen: React.FC = () => {
       };
       
       setStats(statsData);
+      
+      // Update character with current progress
+      updateCharacterProgress({
+        totalXP: statsData.totalXP,
+        currentStreak: statsData.currentStreak,
+        completedHabitsToday: statsData.completedHabitsToday,
+        level: level?.level || 1,
+        habitsThisWeek: statsData.weeklyXP / 8, // Rough estimate of weekly habits
+      });
+      
+      // Check for streak milestones and level ups
+      if (previousStreak.current > 0 && statsData.currentStreak > previousStreak.current) {
+        const streakMilestones = [3, 7, 14, 30, 50, 100];
+        const hitMilestone = streakMilestones.find(milestone => 
+          statsData.currentStreak >= milestone && previousStreak.current < milestone
+        );
+        
+        if (hitMilestone) {
+          triggerCelebration({
+            type: 'streak_milestone',
+            intensity: hitMilestone >= 30 ? 'high' : hitMilestone >= 7 ? 'medium' : 'low',
+            title: `${hitMilestone} Day Streak!`,
+            subtitle: `You're on fire! ${hitMilestone} days in a row!`,
+            message: hitMilestone >= 30 ? 'Absolutely incredible dedication! 🔥' : 
+                     hitMilestone >= 7 ? 'Amazing consistency! Keep it up! 💪' : 
+                     'Great start! Building momentum! 🚀',
+          });
+          
+          // Character reaction to streak milestone
+          triggerCharacterMessage(
+            `Wow! ${hitMilestone} days in a row! You're absolutely unstoppable! 🔥`,
+            'celebrating'
+          );
+        }
+      }
+      
+      // Check for level ups
+      if (level && previousLevel.current > 0 && level.level > previousLevel.current) {
+        triggerCelebration({
+          type: 'level_up',
+          intensity: 'high',
+          title: `Level ${level.level} Achieved!`,
+          subtitle: `Welcome to ${level.title}!`,
+          message: `You've grown so much! Keep pushing forward! 🌟`,
+        });
+        
+        // Character reaction to level up
+        triggerCharacterMessage(
+          `Level ${level.level}! I'm so proud of your growth! You're becoming amazing! ✨`,
+          'excited'
+        );
+      }
+      
+      // Character reactions to daily progress
+      if (statsData.completedHabitsToday >= 3 && previousStreak.current === statsData.currentStreak) {
+        const achievementMessage = getMotivationalMessage('achievement');
+        triggerCharacterMessage(achievementMessage, 'proud');
+      }
+      
+      // Update previous values
+      previousStreak.current = statsData.currentStreak;
+      if (level) previousLevel.current = level.level;
+      
+      // Trigger entrance animation when data loads
+      if (!isRefresh) {
+        Animated.parallel([
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.timing(slideAnim, {
+            toValue: 0,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      }
     } catch (error) {
       console.error('Error loading user stats:', error);
     } finally {
@@ -161,12 +254,32 @@ export const ProgressScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <Animated.ScrollView 
+        style={[
+          styles.content,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          }
+        ]} 
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.header}>
-          <Text style={styles.title}>Your Progress</Text>
-          <Text style={styles.subtitle}>
-            {isRefreshing ? 'Updating...' : 'Keep up the great work!'}
-          </Text>
+          <View style={styles.headerContent}>
+            <View style={styles.titleSection}>
+              <Text style={styles.title}>Your Progress</Text>
+              <Text style={styles.subtitle}>
+                {isRefreshing ? 'Updating...' : 'Keep up the great work!'}
+              </Text>
+            </View>
+            <View style={styles.characterSection}>
+              <CharacterInteraction 
+                size="medium" 
+                showInstructions={true}
+                context="progress"
+              />
+            </View>
+          </View>
         </View>
 
         {/* User Level Progress */}
@@ -176,91 +289,206 @@ export const ProgressScreen: React.FC = () => {
         {stats && <DailyXPGoal currentXP={stats.todayXP} goalXP={50} />}
 
         <View style={styles.statsGrid}>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{stats.totalXP.toLocaleString()}</Text>
-            <Text style={styles.statLabel}>Total XP</Text>
+          {/* Total XP Card */}
+          <AnimatedStatCard
+            emoji="💎"
+            value={stats.totalXP}
+            label="Total XP"
+            progress={1} // Always full for total XP
+            progressColor="#FFD700"
+            backgroundColor="#FFFBF0"
+            borderColor="#FFE082"
+            valueColor="#F57F17"
+            delay={0}
+            onPress={() => console.log('Total XP pressed')}
+          />
+          
+          {/* Weekly XP Card */}
+          <AnimatedStatCard
+            emoji="📅"
+            value={stats.weeklyXP}
+            label="Weekly"
+            progress={Math.min(stats.weeklyXP / 200, 1)}
+            progressColor={theme.colors.primary.blue}
+            backgroundColor="#F3F8FF"
+            borderColor="#90CAF9"
+            valueColor={theme.colors.primary.blue}
+            delay={100}
+            onPress={() => console.log('Weekly XP pressed')}
+          />
+          
+          {/* Monthly XP Card */}
+          <AnimatedStatCard
+            emoji="🗓️"
+            value={stats.monthlyXP}
+            label="Monthly"
+            progress={Math.min(stats.monthlyXP / 1000, 1)}
+            progressColor={theme.colors.secondary.purple}
+            backgroundColor="#F8F3FF"
+            borderColor="#CE93D8"
+            valueColor={theme.colors.secondary.purple}
+            delay={200}
+            onPress={() => console.log('Monthly XP pressed')}
+          />
+          
+          {/* Today's Habits Card */}
+          <AnimatedStatCard
+            emoji="✅"
+            value={stats.completedHabitsToday}
+            label="Today"
+            progress={Math.min(stats.completedHabitsToday / 5, 1)}
+            progressColor={theme.colors.primary.green}
+            backgroundColor="#F1F8E9"
+            borderColor="#A5D6A7"
+            valueColor={theme.colors.primary.green}
+            delay={300}
+            onPress={() => console.log('Habits pressed')}
+          />
+          
+          {/* Streak Card */}
+          <AnimatedStatCard
+            emoji="🔥"
+            value={stats.currentStreak}
+            label="Streak"
+            progress={Math.min(stats.currentStreak / 7, 1)}
+            progressColor="#FF6B35"
+            backgroundColor="#FFF3E0"
+            borderColor="#FFB74D"
+            valueColor="#FF6B35"
+            delay={400}
+            onPress={() => console.log('Streak pressed')}
+          />
+          
+          {/* Active Goals Card */}
+          <AnimatedStatCard
+            emoji="🎯"
+            value={stats.activeGoals}
+            label="Goals"
+            progress={Math.min(stats.activeGoals / 3, 1)}
+            progressColor={theme.colors.secondary.orange}
+            backgroundColor="#FFF8E1"
+            borderColor="#FFCC02"
+            valueColor={theme.colors.secondary.orange}
+            delay={500}
+            onPress={() => console.log('Goals pressed')}
+          />
+        </View>
+
+        {/* Achievement Badge Gallery */}
+        <View style={styles.achievementSection}>
+          <Text style={styles.sectionTitle}>Achievements Gallery</Text>
+          
+          {/* Featured Recent Achievements */}
+          <View style={styles.featuredAchievements}>
+            {(() => {
+              // Mock some achievements for demo (in real app, get from gamification service)
+              const mockAchievements = [
+                {
+                  id: 'first_steps',
+                  title: 'First Steps',
+                  description: 'Complete your first habit',
+                  emoji: '🌱',
+                  category: 'milestone' as const,
+                  rarity: 'common' as const,
+                  unlocked: stats.completedHabitsToday > 0,
+                  progress: Math.min(stats.completedHabitsToday / 1, 1),
+                },
+                {
+                  id: 'streak_starter',
+                  title: 'Streak Starter',
+                  description: '3 days in a row',
+                  emoji: '🔥',
+                  category: 'streak' as const,
+                  rarity: 'common' as const,
+                  unlocked: stats.currentStreak >= 3,
+                  progress: Math.min(stats.currentStreak / 3, 1),
+                },
+                {
+                  id: 'week_warrior',
+                  title: 'Week Warrior',
+                  description: '7 days in a row',
+                  emoji: '⚡',
+                  category: 'streak' as const,
+                  rarity: 'rare' as const,
+                  unlocked: stats.currentStreak >= 7,
+                  progress: Math.min(stats.currentStreak / 7, 1),
+                },
+                {
+                  id: 'habit_builder',
+                  title: 'Habit Builder',
+                  description: 'Complete 25 habits total',
+                  emoji: '🏗️',
+                  category: 'milestone' as const,
+                  rarity: 'rare' as const,
+                  unlocked: stats.totalXP >= 200, // Approximate 25 habits
+                  progress: Math.min(stats.totalXP / 200, 1),
+                },
+              ];
+
+              return mockAchievements.slice(0, 3).map((achievement) => (
+                <View key={achievement.id} style={styles.badgeContainer}>
+                  <AchievementBadge
+                    id={achievement.id}
+                    title={achievement.title}
+                    description={achievement.description}
+                    category={achievement.category}
+                    rarity={achievement.rarity}
+                    emoji={achievement.emoji}
+                    unlocked={achievement.unlocked}
+                    progress={achievement.progress}
+                    size="small"
+                    animated={true}
+                    showProgress={true}
+                  />
+                </View>
+              ));
+            })()}
           </View>
           
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{stats.weeklyXP.toLocaleString()}</Text>
-            <Text style={styles.statLabel}>This Week</Text>
-          </View>
-          
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{stats.monthlyXP.toLocaleString()}</Text>
-            <Text style={styles.statLabel}>This Month</Text>
-          </View>
-          
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{stats.completedHabitsToday}</Text>
-            <Text style={styles.statLabel}>Today's Habits</Text>
-          </View>
-          
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{stats.currentStreak}</Text>
-            <Text style={styles.statLabel}>Day Streak</Text>
-          </View>
-          
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{stats.activeGoals}</Text>
-            <Text style={styles.statLabel}>Active Goals</Text>
+          {/* Achievement Progress Summary */}
+          <View style={styles.achievementSummary}>
+            <View style={styles.summaryCard}>
+              <Text style={styles.summaryEmoji}>🏆</Text>
+              <Text style={styles.summaryTitle}>Achievements</Text>
+              <Text style={styles.summaryValue}>
+                {/* Mock data - in real app calculate from gamification service */}
+                {Math.min(stats.currentStreak + (stats.completedHabitsToday > 0 ? 1 : 0), 20)}/20
+              </Text>
+              <Text style={styles.summaryLabel}>Unlocked</Text>
+            </View>
+            
+            <View style={styles.summaryCard}>
+              <Text style={styles.summaryEmoji}>⭐</Text>
+              <Text style={styles.summaryTitle}>Rarity</Text>
+              <Text style={styles.summaryValue}>
+                {stats.currentStreak >= 7 ? 'Epic' : stats.currentStreak >= 3 ? 'Rare' : 'Common'}
+              </Text>
+              <Text style={styles.summaryLabel}>Best Badge</Text>
+            </View>
+            
+            <View style={styles.summaryCard}>
+              <Text style={styles.summaryEmoji}>🎯</Text>
+              <Text style={styles.summaryTitle}>Next Goal</Text>
+              <Text style={styles.summaryValue}>
+                {stats.currentStreak < 3 ? '3 Day Streak' : stats.currentStreak < 7 ? '7 Day Streak' : '14 Day Streak'}
+              </Text>
+              <Text style={styles.summaryLabel}>Almost There</Text>
+            </View>
           </View>
         </View>
 
-        <View style={styles.achievementSection}>
-          <Text style={styles.sectionTitle}>Recent Achievements</Text>
-          
-          {/* Level-based achievements */}
-          {userLevel && userLevel.level >= 2 && (
-            <View style={styles.achievementCard}>
-              <Text style={styles.achievementEmoji}>🌱</Text>
-              <View style={styles.achievementText}>
-                <Text style={styles.achievementTitle}>Level {userLevel.level} {userLevel.title}</Text>
-                <Text style={styles.achievementDescription}>Unlocked with {userLevel.currentXP.toLocaleString()} XP</Text>
-              </View>
-            </View>
-          )}
-          
-          {stats.totalXP >= 100 && (
-            <View style={styles.achievementCard}>
-              <Text style={styles.achievementEmoji}>💯</Text>
-              <View style={styles.achievementText}>
-                <Text style={styles.achievementTitle}>Century Club</Text>
-                <Text style={styles.achievementDescription}>Earned 100+ total XP</Text>
-              </View>
-            </View>
-          )}
-          
-          {stats.weeklyXP >= 50 && (
-            <View style={styles.achievementCard}>
-              <Text style={styles.achievementEmoji}>📅</Text>
-              <View style={styles.achievementText}>
-                <Text style={styles.achievementTitle}>Weekly Warrior</Text>
-                <Text style={styles.achievementDescription}>Earned {stats.weeklyXP} XP this week</Text>
-              </View>
-            </View>
-          )}
-          
-          {stats.completedHabitsToday > 0 && (
-            <View style={styles.achievementCard}>
-              <Text style={styles.achievementEmoji}>⚡</Text>
-              <View style={styles.achievementText}>
-                <Text style={styles.achievementTitle}>Daily Warrior</Text>
-                <Text style={styles.achievementDescription}>Completed {stats.completedHabitsToday} habit{stats.completedHabitsToday > 1 ? 's' : ''} today</Text>
-              </View>
-            </View>
-          )}
-          
-          {stats.completedGoals > 0 && (
-            <View style={styles.achievementCard}>
-              <Text style={styles.achievementEmoji}>🏆</Text>
-              <View style={styles.achievementText}>
-                <Text style={styles.achievementTitle}>Goal Crusher</Text>
-                <Text style={styles.achievementDescription}>Completed {stats.completedGoals} goal{stats.completedGoals > 1 ? 's' : ''}</Text>
-              </View>
-            </View>
-          )}
-        </View>
+        {/* Character-driven habit suggestions */}
+        {userLevel && stats && (
+          <CharacterHabitSuggestions
+            userLevel={userLevel.level}
+            currentStreak={stats.currentStreak}
+            completedCategories={[]} // TODO: Track actual completed categories
+            onSuggestionSelect={(suggestion) => {
+              console.log('Selected habit suggestion:', suggestion.title);
+              // TODO: Add navigation to habit creation or integration
+            }}
+          />
+        )}
 
         <View style={styles.motivationSection}>
           <Text style={styles.sectionTitle}>Keep Going!</Text>
@@ -279,7 +507,7 @@ export const ProgressScreen: React.FC = () => {
             </Text>
           </View>
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
     </SafeAreaView>
   );
 };
@@ -293,90 +521,215 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    padding: theme.spacing.lg,
-    paddingBottom: theme.spacing.md - theme.spacing.xs,
+    padding: theme.spacing.md,
+    paddingBottom: theme.spacing.sm,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  titleSection: {
+    flex: 1,
+    alignItems: 'flex-start',
   },
   title: {
     fontSize: theme.typography.sizes.title,
     fontWeight: theme.typography.weights.bold,
     color: theme.colors.text.primary,
-    textAlign: 'center',
   },
   subtitle: {
     fontSize: theme.typography.sizes.md,
     color: theme.colors.text.secondary,
-    textAlign: 'center',
     marginTop: theme.spacing.xs,
+  },
+  characterSection: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    padding: theme.spacing.lg,
-    gap: theme.spacing.md - theme.spacing.xs,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.sm,
+    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
   },
   statCard: {
     backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
+    borderRadius: theme.borderRadius.xl,
     padding: theme.spacing.lg,
     alignItems: 'center',
     width: '47%',
-    ...theme.shadows.md,
+    ...theme.shadows.lg,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  
+  // Enhanced Stat Card Styles
+  statIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#F8F9FA',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: theme.spacing.md,
+    ...theme.shadows.sm,
+  },
+  statEmoji: {
+    fontSize: 20,
   },
   statValue: {
     fontSize: theme.typography.sizes.heading,
     fontWeight: theme.typography.weights.bold,
-    color: theme.colors.secondary.orange,
+    marginBottom: theme.spacing.xs,
   },
   statLabel: {
     fontSize: theme.typography.sizes.sm,
     color: theme.colors.text.secondary,
-    marginTop: theme.spacing.sm,
+    marginBottom: theme.spacing.sm,
     textAlign: 'center',
+    fontWeight: theme.typography.weights.medium,
+  },
+  statProgress: {
+    width: '100%',
+    height: 4,
+    backgroundColor: theme.colors.neutral.lightGray,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressBar: {
+    height: '100%',
+    borderRadius: 2,
+    ...theme.shadows.sm,
+  },
+  
+  // Individual Card Color Schemes
+  statCardTotalXP: {
+    backgroundColor: '#FFFBF0',
+    borderWidth: 1,
+    borderColor: '#FFE082',
+  },
+  statValueTotalXP: {
+    color: '#F57F17',
+  },
+  
+  statCardWeekly: {
+    backgroundColor: '#F3F8FF',
+    borderWidth: 1,
+    borderColor: '#90CAF9',
+  },
+  statValueWeekly: {
+    color: theme.colors.primary.blue,
+  },
+  
+  statCardMonthly: {
+    backgroundColor: '#F8F3FF',
+    borderWidth: 1,
+    borderColor: '#CE93D8',
+  },
+  statValueMonthly: {
+    color: theme.colors.secondary.purple,
+  },
+  
+  statCardHabits: {
+    backgroundColor: '#F1F8E9',
+    borderWidth: 1,
+    borderColor: '#A5D6A7',
+  },
+  statValueHabits: {
+    color: theme.colors.primary.green,
+  },
+  
+  statCardStreak: {
+    backgroundColor: '#FFF3E0',
+    borderWidth: 1,
+    borderColor: '#FFB74D',
+  },
+  statValueStreak: {
+    color: '#FF6B35',
+  },
+  
+  statCardGoals: {
+    backgroundColor: '#FFF8E1',
+    borderWidth: 1,
+    borderColor: '#FFCC02',
+  },
+  statValueGoals: {
+    color: theme.colors.secondary.orange,
   },
   achievementSection: {
-    padding: theme.spacing.lg,
-    paddingTop: theme.spacing.md - theme.spacing.xs,
+    padding: theme.spacing.md,
+    paddingTop: theme.spacing.sm,
   },
   sectionTitle: {
-    fontSize: theme.typography.sizes.xl,
+    fontSize: theme.typography.sizes.lg,
     fontWeight: theme.typography.weights.bold,
     color: theme.colors.text.primary,
-    marginBottom: theme.spacing.md - theme.spacing.xs,
+    marginBottom: theme.spacing.md,
+    textAlign: 'center',
   },
-  achievementCard: {
+  
+  // Featured Achievements Styles
+  featuredAchievements: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: theme.spacing.md,
+    paddingHorizontal: theme.spacing.xs,
+  },
+  badgeContainer: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  
+  // Achievement Summary Styles
+  achievementSummary: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: theme.spacing.sm,
+  },
+  summaryCard: {
+    flex: 1,
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.md,
     padding: theme.spacing.md,
-    marginBottom: theme.spacing.md - theme.spacing.xs,
-    flexDirection: 'row',
     alignItems: 'center',
     ...theme.shadows.sm,
+    borderWidth: 1,
+    borderColor: theme.colors.neutral.lightGray,
   },
-  achievementEmoji: {
-    fontSize: theme.typography.sizes.heading,
-    marginRight: theme.spacing.md,
+  summaryEmoji: {
+    fontSize: 18,
+    marginBottom: theme.spacing.xs,
   },
-  achievementText: {
-    flex: 1,
-  },
-  achievementTitle: {
-    fontSize: theme.typography.sizes.md,
-    fontWeight: theme.typography.weights.semibold,
-    color: theme.colors.text.primary,
-  },
-  achievementDescription: {
-    fontSize: theme.typography.sizes.sm,
+  summaryTitle: {
+    fontSize: theme.typography.sizes.xs,
+    fontWeight: theme.typography.weights.medium,
     color: theme.colors.text.secondary,
-    marginTop: theme.spacing.xs / 2,
+    marginBottom: theme.spacing.xs / 2,
+    textAlign: 'center',
+  },
+  summaryValue: {
+    fontSize: theme.typography.sizes.md,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.colors.text.primary,
+    marginBottom: theme.spacing.xs / 2,
+    textAlign: 'center',
+  },
+  summaryLabel: {
+    fontSize: theme.typography.sizes.xs,
+    color: theme.colors.text.secondary,
+    textAlign: 'center',
   },
   motivationSection: {
-    padding: theme.spacing.lg,
-    paddingTop: theme.spacing.md - theme.spacing.xs,
+    padding: theme.spacing.md,
+    paddingTop: theme.spacing.sm,
   },
   motivationCard: {
     backgroundColor: theme.colors.secondary.orange,
     borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.lg,
+    padding: theme.spacing.md,
     alignItems: 'center',
   },
   motivationText: {
