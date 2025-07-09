@@ -17,6 +17,7 @@ import { CalendarDayView } from '../components/CalendarDayView';
 import { CalendarMonthView } from '../components/CalendarMonthView';
 import { ScheduleSummaryCards } from '../components/ScheduleSummaryCards';
 import { TaskCard } from '../components/TaskCard';
+import { AddScheduleModal } from '../components/AddScheduleModal';
 import { scheduleService } from '../services/scheduleService';
 
 const { width } = Dimensions.get('window');
@@ -39,6 +40,7 @@ export const ScheduleScreen: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [tasks, setTasks] = useState<ScheduledTask[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAddModal, setShowAddModal] = useState(false);
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Debounced sync function to prevent excessive AsyncStorage writes
@@ -102,9 +104,20 @@ export const ScheduleScreen: React.FC = () => {
   // Refresh tasks when screen comes into focus (with sync for reminder updates)
   useFocusEffect(
     useCallback(() => {
+      // Force sync when screen comes into focus to ensure reminders are up to date
       loadTasks(true);
     }, [loadTasks])
   );
+
+  const handleRefresh = async () => {
+    // Manual refresh function
+    try {
+      setLoading(true);
+      await loadTasks(true); // Force sync
+    } catch (error) {
+      console.error('Error refreshing schedule:', error);
+    }
+  };
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -216,6 +229,18 @@ export const ScheduleScreen: React.FC = () => {
     }
   };
 
+  const handleTaskAdded = async (newTask: ScheduledTask) => {
+    // Add the new task to the local state immediately for responsiveness
+    setTasks(prev => [...prev, newTask]);
+    
+    // Also reload tasks to ensure consistency with storage
+    try {
+      await loadTasks(false);
+    } catch (error) {
+      console.error('Error reloading tasks after addition:', error);
+    }
+  };
+
   const stats = getTaskStats();
   const visibleTasks = getVisibleTasks();
 
@@ -224,6 +249,9 @@ export const ScheduleScreen: React.FC = () => {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Schedule</Text>
+        <TouchableOpacity onPress={handleRefresh} style={styles.refreshButton}>
+          <Ionicons name="refresh" size={20} color={theme.colors.text.primary} />
+        </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -329,9 +357,20 @@ export const ScheduleScreen: React.FC = () => {
       </ScrollView>
 
       {/* Floating Add Button */}
-      <TouchableOpacity style={styles.floatingButton}>
+      <TouchableOpacity 
+        style={styles.floatingButton}
+        onPress={() => setShowAddModal(true)}
+      >
         <Ionicons name="add" size={24} color="white" />
       </TouchableOpacity>
+
+      {/* Add Schedule Modal */}
+      <AddScheduleModal
+        visible={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onTaskAdded={handleTaskAdded}
+        selectedDate={selectedDate}
+      />
     </SafeAreaView>
   );
 };
@@ -342,6 +381,9 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.md,
     backgroundColor: theme.colors.background,
@@ -350,6 +392,9 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.sizes.heading,
     fontWeight: theme.typography.weights.bold,
     color: theme.colors.text.primary,
+  },
+  refreshButton: {
+    padding: theme.spacing.sm,
   },
   content: {
     flex: 1,

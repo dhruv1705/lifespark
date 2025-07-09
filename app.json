@@ -15,8 +15,12 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "UIBackgroundModes": ["background-processing"]
-      }
+        "UIBackgroundModes": [
+          "background-processing",
+          "background-processing"
+        ]
+      },
+      "bundleIdentifier": "com.zolatte.lifesparkapp"
     },
     "android": {
       "adaptiveIcon": {

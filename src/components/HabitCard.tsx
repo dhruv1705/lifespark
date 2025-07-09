@@ -13,10 +13,9 @@ import { hasVideo, getVideoConfig } from '../data/videoHelper';
 interface HabitCardProps {
   habit: Habit;
   onToggle: () => void;
-  onExecute?: () => void;
 }
 
-export const HabitCard: React.FC<HabitCardProps> = ({ habit, onToggle, onExecute }) => {
+export const HabitCard: React.FC<HabitCardProps> = ({ habit, onToggle }) => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   
   // Check if this is an interactive habit
@@ -46,9 +45,16 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onToggle, onExecute
   };
   
   const handlePress = () => {
-    if (isInteractive && onExecute) {
-      onExecute();
+    if (hasVideoContent && videoConfig) {
+      // Navigate to video player with habit data for XP integration
+      navigation.navigate('VideoPlayer', {
+        videoUrl: videoConfig.videoUrl,
+        title: videoConfig.title || habit.name,
+        habitId: habit.id,
+        habitXp: habit.xp
+      });
     } else {
+      // For habits without videos, just toggle completion
       onToggle();
     }
   };

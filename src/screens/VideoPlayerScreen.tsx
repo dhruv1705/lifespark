@@ -12,12 +12,18 @@ import {
   PanResponder,
   Animated,
 } from 'react-native';
+import * as ScreenOrientation from 'expo-screen-orientation';
+import * as NavigationBar from 'expo-navigation-bar';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { Audio } from 'expo-av';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../types';
 import { theme } from '../theme';
+import { DataService } from '../services/dataService';
+import { useAuth } from '../context/AuthContext';
+import { useCelebration } from '../context/CelebrationContext';
+import { dataSync, DATA_SYNC_EVENTS } from '../utils/dataSync';
 
 const { width, height } = Dimensions.get('window');
 
@@ -30,7 +36,9 @@ export const VideoPlayerScreen: React.FC<VideoPlayerScreenProps> = ({
   navigation,
   route,
 }) => {
-  const { videoUrl, title } = route.params;
+  const { videoUrl, title, habitId, habitXp } = route.params;
+  const { user } = useAuth();
+  const { triggerCelebration } = useCelebration();
   const [showControls, setShowControls] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -39,6 +47,10 @@ export const VideoPlayerScreen: React.FC<VideoPlayerScreenProps> = ({
   const [duration, setDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
+  const [isLandscape, setIsLandscape] = useState(false);
+  const [hasCompletedVideo, setHasCompletedVideo] = useState(false);
+  const [completionThreshold] = useState(0.9); // 90% completion threshold
   
   const player = useVideoPlayer(videoUrl, player => {
     player.loop = false;
@@ -85,8 +97,20 @@ export const VideoPlayerScreen: React.FC<VideoPlayerScreenProps> = ({
       if (status === 'readyToPlay') {
         setIsLoading(false);
         setHasError(false);
-        setDuration(player.duration || 0);
-        console.log('Video is ready to play');
+        const videoDuration = player.duration || 0;
+        console.log('Video is ready to play, duration:', videoDuration);
+        setDuration(videoDuration);
+        
+        // If duration is still 0, try to get it after a short delay
+        if (videoDuration === 0) {
+          setTimeout(() => {
+            const delayedDuration = player.duration || 0;
+            console.log('Delayed duration check:', delayedDuration);
+            if (delayedDuration > 0) {
+              setDuration(delayedDuration);
+            }
+          }, 500);
+        }
       } else if (status === 'error') {
         setIsLoading(false);
         setHasError(true);
@@ -107,7 +131,20 @@ export const VideoPlayerScreen: React.FC<VideoPlayerScreenProps> = ({
 
     // Listen for time updates
     const timeSubscription = player.addListener('timeUpdate', (payload) => {
+      console.log('Time update:', payload.currentTime, 'Duration:', player.duration);
       setCurrentTime(payload.currentTime);
+      
+      // Update duration if we have it and it's not set
+      if (player.duration && player.duration > 0 && duration === 0) {
+        console.log('Setting duration from timeUpdate:', player.duration);
+        setDuration(player.duration);
+      }
+      
+      // Check for video completion
+      const currentDuration = player.duration || duration;
+      if (currentDuration > 0 && payload.currentTime >= currentDuration * completionThreshold && !hasCompletedVideo) {
+        handleVideoCompletion();
+      }
     });
 
     // Set a timeout to clear loading state if video doesn't load
@@ -118,11 +155,28 @@ export const VideoPlayerScreen: React.FC<VideoPlayerScreenProps> = ({
       }
     }, 5000);
 
+    // Backup timer to ensure time updates work
+    const timeUpdateInterval = setInterval(() => {
+      if (player && isPlaying) {
+        const currentPlayerTime = player.currentTime || 0;
+        const currentPlayerDuration = player.duration || 0;
+        
+        if (currentPlayerTime !== currentTime) {
+          setCurrentTime(currentPlayerTime);
+        }
+        
+        if (currentPlayerDuration > 0 && currentPlayerDuration !== duration) {
+          setDuration(currentPlayerDuration);
+        }
+      }
+    }, 1000);
+
     return () => {
       statusSubscription?.remove();
       playingSubscription?.remove();
       timeSubscription?.remove();
       clearTimeout(loadingTimeout);
+      clearInterval(timeUpdateInterval);
     };
   }, [player]);
 
@@ -143,13 +197,30 @@ export const VideoPlayerScreen: React.FC<VideoPlayerScreenProps> = ({
       setShowControls(false);
     }, 3000);
 
+    // Listen for orientation changes
+    const subscription = ScreenOrientation.addOrientationChangeListener((event) => {
+      const { orientationInfo } = event;
+      const isCurrentlyLandscape = orientationInfo.orientation === ScreenOrientation.Orientation.LANDSCAPE_LEFT || 
+                                   orientationInfo.orientation === ScreenOrientation.Orientation.LANDSCAPE_RIGHT;
+      setIsLandscape(isCurrentlyLandscape);
+      setIsFullscreen(isCurrentlyLandscape);
+    });
+
     return () => {
       backHandler.remove();
       clearTimeout(timer);
+      subscription?.remove();
     };
   }, []);
 
-  const handleExit = () => {
+  const handleExit = async () => {
+    // Reset orientation when exiting
+    if (isLandscape) {
+      await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+      if (Platform.OS === 'android') {
+        await NavigationBar.setVisibilityAsync('visible');
+      }
+    }
     navigation.goBack();
   };
 
@@ -181,9 +252,40 @@ export const VideoPlayerScreen: React.FC<VideoPlayerScreenProps> = ({
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
+  const handleVideoCompletion = async () => {
+    if (hasCompletedVideo || !habitId || !user) return;
+    
+    try {
+      setHasCompletedVideo(true);
+      
+      // Award XP for video completion
+      await DataService.toggleHabitCompletion(user.id, habitId, habitXp || 0);
+      
+      // Trigger celebration
+      triggerCelebration({
+        type: 'habit_completed',
+        message: `Great job! You earned ${habitXp || 0} XP for completing this video!`,
+        xp: habitXp || 0,
+        habitName: title || 'Video'
+      });
+      
+      // Emit data sync event
+      dataSync.emit(DATA_SYNC_EVENTS.HABIT_TOGGLED, {
+        habitId,
+        completed: true,
+        xp: habitXp || 0
+      });
+      
+      console.log('Video completion XP awarded:', habitXp);
+      
+    } catch (error) {
+      console.error('Error awarding video completion XP:', error);
+    }
+  };
+
   const handleSeek = (value: number) => {
     const seekTime = (value / 100) * duration;
-    player.seekTo(seekTime);
+    player.currentTime = seekTime;
     setCurrentTime(seekTime);
   };
 
@@ -194,26 +296,72 @@ export const VideoPlayerScreen: React.FC<VideoPlayerScreenProps> = ({
     setIsMuted(newMutedState);
   };
 
-  const toggleFullscreen = () => {
-    setIsFullscreen(!isFullscreen);
+  const toggleFullscreen = async () => {
+    try {
+      if (isLandscape) {
+        // Switch back to portrait
+        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+        if (Platform.OS === 'android') {
+          await NavigationBar.setVisibilityAsync('visible');
+        }
+        setIsLandscape(false);
+        setIsFullscreen(false);
+      } else {
+        // Switch to landscape
+        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+        if (Platform.OS === 'android') {
+          await NavigationBar.setVisibilityAsync('hidden');
+        }
+        setIsLandscape(true);
+        setIsFullscreen(true);
+      }
+    } catch (error) {
+      console.log('Error changing orientation:', error);
+    }
+  };
+
+  const skipForward = () => {
+    const currentDuration = player.duration || duration;
+    const newTime = Math.min(currentTime + 10, currentDuration);
+    player.currentTime = newTime;
+    setCurrentTime(newTime);
+  };
+
+  const skipBackward = () => {
+    const newTime = Math.max(currentTime - 10, 0);
+    player.currentTime = newTime;
+    setCurrentTime(newTime);
+  };
+
+  const togglePlaybackSpeed = () => {
+    try {
+      const speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+      const currentIndex = speeds.indexOf(playbackSpeed);
+      const nextSpeed = speeds[(currentIndex + 1) % speeds.length];
+      player.playbackRate = nextSpeed;
+      setPlaybackSpeed(nextSpeed);
+      console.log('Playback speed changed to:', nextSpeed);
+    } catch (error) {
+      console.log('Playback speed error:', error);
+    }
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isLandscape && styles.landscapeContainer]}>
       <StatusBar 
         barStyle="light-content" 
         backgroundColor="#000000"
-        hidden={true}
+        hidden={isLandscape}
       />
       
       <VideoView
-        style={styles.video}
+        style={[styles.video, isLandscape && styles.landscapeVideo]}
         player={player}
         allowsFullscreen={false}
         allowsPictureInPicture={false}
-        showsTimecodes={true}
+        showsTimecodes={false}
         requiresLinearPlayback={false}
-        contentFit="cover"
+        contentFit={isLandscape ? "cover" : "contain"}
         nativeControls={false}
       />
 
@@ -230,7 +378,7 @@ export const VideoPlayerScreen: React.FC<VideoPlayerScreenProps> = ({
           <Text style={styles.errorText}>Unable to load video</Text>
           <TouchableOpacity style={styles.retryButton} onPress={() => {
             setHasError(false);
-            setIsLoading(false);
+            setIsLoading(true);
             player.play();
           }}>
             <Text style={styles.retryText}>Retry</Text>
@@ -240,9 +388,9 @@ export const VideoPlayerScreen: React.FC<VideoPlayerScreenProps> = ({
 
       {/* Custom Overlay Controls */}
       {showControls && (
-        <View style={styles.overlay}>
+        <View style={[styles.overlay, isLandscape && styles.landscapeOverlay]}>
           <SafeAreaView style={styles.safeArea}>
-            <View style={styles.header}>
+            <View style={[styles.header, isLandscape && styles.landscapeHeader]}>
               <TouchableOpacity 
                 style={styles.closeButton} 
                 onPress={handleExit}
@@ -250,62 +398,93 @@ export const VideoPlayerScreen: React.FC<VideoPlayerScreenProps> = ({
                 <Text style={styles.closeButtonText}>✕</Text>
               </TouchableOpacity>
               
-              {title && (
+              {title && !isLandscape && (
                 <Text style={styles.title} numberOfLines={1}>
                   {title}
                 </Text>
               )}
             </View>
             
-            {/* Center Play/Pause Button */}
+            {/* Center Controls */}
             <View style={styles.centerControls}>
-              <TouchableOpacity 
-                style={styles.playPauseButton} 
-                onPress={togglePlayPause}
-              >
-                <Text style={styles.playPauseIcon}>
-                  {isPlaying ? '⏸' : '▶'}
-                </Text>
-              </TouchableOpacity>
+              <View style={styles.playbackControls}>
+                <TouchableOpacity 
+                  style={styles.skipButton} 
+                  onPress={skipBackward}
+                >
+                  <Text style={styles.skipIcon}>⏪</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.playPauseButton} 
+                  onPress={togglePlayPause}
+                >
+                  <Text style={styles.playPauseIcon}>
+                    {isPlaying ? '⏸' : '▶'}
+                  </Text>
+                </TouchableOpacity>
+                
+                {/* Rotate Button - moved to same line */}
+                <TouchableOpacity 
+                  style={styles.centerRotateButton}
+                  onPress={toggleFullscreen}
+                >
+                  <Text style={styles.centerRotateIcon}>
+                    {isLandscape ? '📱' : '🔄'}
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.skipButton} 
+                  onPress={skipForward}
+                >
+                  <Text style={styles.skipIcon}>⏩</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* Bottom Controls */}
-            <View style={styles.bottomControls}>
-              <View style={styles.progressContainer}>
+            <View style={[styles.bottomControls, isLandscape && styles.landscapeBottomControls]}>
+              <View style={[styles.progressContainer, isLandscape && styles.landscapeProgressContainer]}>
                 <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
                 
-                <TouchableOpacity 
-                  style={styles.progressBarContainer}
-                  onPress={(event) => {
-                    const { locationX } = event.nativeEvent;
-                    const progress = locationX / (width - 2 * theme.spacing.lg - 2 * theme.spacing.md);
-                    const seekTime = progress * duration;
-                    if (seekTime >= 0 && seekTime <= duration) {
-                      player.seekTo(seekTime);
-                      setCurrentTime(seekTime);
-                    }
-                  }}
-                >
-                  <View style={styles.progressBar}>
-                    <View 
-                      style={[
-                        styles.progressFill, 
-                        { width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }
-                      ]} 
-                    />
-                    <View
-                      style={[
-                        styles.progressThumb,
-                        { left: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }
-                      ]}
-                    />
-                  </View>
-                </TouchableOpacity>
+                <View style={styles.progressBarContainer}>
+                  <TouchableOpacity
+                    style={styles.progressBar}
+                    onPress={(event) => {
+                      const { locationX } = event.nativeEvent;
+                      const { width } = event.currentTarget.measure ? { width: 250 } : { width: 250 };
+                      const progressPercentage = Math.max(0, Math.min(1, locationX / width));
+                      const currentDuration = player.duration || duration;
+                      const seekTime = progressPercentage * currentDuration;
+                      if (currentDuration > 0) {
+                        player.currentTime = seekTime;
+                        setCurrentTime(seekTime);
+                      }
+                    }}
+                    activeOpacity={1}
+                  >
+                    <View style={styles.progressTrack}>
+                      <View 
+                        style={[
+                          styles.progressFill, 
+                          { width: `${(player.duration || duration) > 0 ? (currentTime / (player.duration || duration)) * 100 : 0}%` }
+                        ]} 
+                      />
+                      <View
+                        style={[
+                          styles.progressThumb,
+                          { left: `${(player.duration || duration) > 0 ? (currentTime / (player.duration || duration)) * 100 : 0}%` }
+                        ]}
+                      />
+                    </View>
+                  </TouchableOpacity>
+                </View>
                 
-                <Text style={styles.timeText}>{formatTime(duration)}</Text>
+                <Text style={styles.timeText}>{formatTime(player.duration || duration)}</Text>
               </View>
               
-              <View style={styles.controlsRow}>
+              <View style={[styles.controlsRow, isLandscape && styles.landscapeControlsRow]}>
                 <TouchableOpacity 
                   style={styles.volumeButton}
                   onPress={toggleMute}
@@ -316,11 +495,11 @@ export const VideoPlayerScreen: React.FC<VideoPlayerScreenProps> = ({
                 </TouchableOpacity>
                 
                 <TouchableOpacity 
-                  style={styles.fullscreenButton}
-                  onPress={toggleFullscreen}
+                  style={styles.speedButton}
+                  onPress={togglePlaybackSpeed}
                 >
-                  <Text style={styles.fullscreenIcon}>
-                    {isFullscreen ? '⬜' : '⬜'}
+                  <Text style={styles.speedText}>
+                    {playbackSpeed}x
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -344,9 +523,26 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
+  landscapeContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1000,
+  },
   video: {
     width: width,
     height: height,
+  },
+  landscapeVideo: {
+    width: height, // Swap dimensions for landscape
+    height: width,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   overlay: {
     position: 'absolute',
@@ -358,6 +554,9 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     zIndex: 10,
   },
+  landscapeOverlay: {
+    zIndex: 1001,
+  },
   safeArea: {
     flex: 1,
   },
@@ -366,6 +565,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
+  },
+  landscapeHeader: {
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
   },
   closeButton: {
     width: 44,
@@ -445,6 +648,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  playbackControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xl,
+  },
   playPauseButton: {
     width: 80,
     height: 80,
@@ -458,14 +666,34 @@ const styles = StyleSheet.create({
     fontSize: 28,
     color: theme.colors.text.inverse,
   },
+  skipButton: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(76, 175, 80, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...theme.shadows.sm,
+  },
+  skipIcon: {
+    fontSize: 20,
+    color: theme.colors.text.inverse,
+  },
   bottomControls: {
     paddingHorizontal: theme.spacing.lg,
     paddingBottom: theme.spacing.md,
+  },
+  landscapeBottomControls: {
+    paddingHorizontal: theme.spacing.xl,
+    paddingBottom: theme.spacing.sm,
   },
   progressContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  landscapeProgressContainer: {
+    marginBottom: theme.spacing.xs,
   },
   timeText: {
     color: theme.colors.text.inverse,
@@ -479,25 +707,32 @@ const styles = StyleSheet.create({
     marginHorizontal: theme.spacing.md,
   },
   progressBar: {
-    height: 4,
+    height: 20,
+    justifyContent: 'center',
+    paddingVertical: 7,
+  },
+  progressTrack: {
+    height: 6,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 2,
+    borderRadius: 3,
     position: 'relative',
   },
   progressFill: {
     height: '100%',
     backgroundColor: theme.colors.primary.green,
-    borderRadius: 2,
+    borderRadius: 3,
   },
   progressThumb: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     backgroundColor: theme.colors.primary.green,
     position: 'absolute',
     top: -6,
-    marginLeft: -8,
-    ...theme.shadows.sm,
+    marginLeft: -9,
+    borderWidth: 2,
+    borderColor: '#ffffff',
+    ...theme.shadows.md,
   },
   controlsRow: {
     flexDirection: 'row',
@@ -505,6 +740,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: theme.spacing.md,
     gap: theme.spacing.md,
+  },
+  landscapeControlsRow: {
+    marginTop: theme.spacing.sm,
+    gap: theme.spacing.lg,
   },
   volumeButton: {
     width: 44,
@@ -518,16 +757,31 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: theme.colors.text.inverse,
   },
-  fullscreenButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  centerRotateButton: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: theme.colors.primary.green,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...theme.shadows.md,
+  },
+  centerRotateIcon: {
+    fontSize: 20,
+    color: theme.colors.text.inverse,
+  },
+  speedButton: {
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.borderRadius.md,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    minWidth: 50,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  fullscreenIcon: {
-    fontSize: 18,
+  speedText: {
+    fontSize: theme.typography.sizes.sm,
     color: theme.colors.text.inverse,
+    fontWeight: theme.typography.weights.bold,
   },
 });

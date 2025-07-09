@@ -8,59 +8,148 @@ type UserGoal = Database['public']['Tables']['user_goals']['Row'];
 type UserHabit = Database['public']['Tables']['user_habits']['Row'];
 type DailyCompletion = Database['public']['Tables']['daily_completions']['Row'];
 
-// Demo data for offline mode
+// Demo data for offline mode - synchronized with database content
 const DEMO_CATEGORIES: Category[] = [
-  { id: '1', name: 'Health & Wellness', description: 'Physical and mental well-being', created_at: new Date().toISOString() },
-  { id: '2', name: 'Personal Growth', description: 'Self-improvement and learning', created_at: new Date().toISOString() },
-];
-
-const DEMO_GOALS: Goal[] = [
-  { id: '1', category_id: '1', name: 'Morning Routine', description: 'Start each day with intention', created_at: new Date().toISOString() },
-  { id: '2', category_id: '1', name: 'Fitness Journey', description: 'Build strength and endurance', created_at: new Date().toISOString() },
-];
-
-const DEMO_HABITS: Habit[] = [
   { 
     id: '1', 
-    goal_id: '1', 
-    name: 'Morning Stretch', 
-    description: 'Gentle stretching to awaken the body',
-    frequency: 'daily',
-    duration: 300,
-    xp: 10,
-    level: 'Foundation',
-    created_at: new Date().toISOString()
+    name: 'Physical Health', 
+    emoji: '💪',
+    description: 'Build strength, endurance, and overall fitness', 
+    created_at: new Date().toISOString() 
   },
   { 
     id: '2', 
-    goal_id: '2', 
-    name: 'Push-ups', 
-    description: 'Build upper body strength',
-    frequency: 'daily',
-    duration: 180,
-    xp: 15,
-    level: 'Building',
-    created_at: new Date().toISOString()
+    name: 'Mental Health', 
+    emoji: '🧠',
+    description: 'Improve mindfulness, reduce stress, and boost mood', 
+    created_at: new Date().toISOString() 
   },
   { 
     id: '3', 
-    goal_id: '2', 
-    name: '10 Squats', 
-    description: 'Build lower body strength and power',
-    frequency: 'daily',
-    duration: 240,
-    xp: 18,
-    level: 'Building',
-    created_at: new Date().toISOString()
+    name: 'Finance', 
+    emoji: '💰',
+    description: 'Build wealth, save money, and financial planning', 
+    created_at: new Date().toISOString() 
   },
+  { 
+    id: '4', 
+    name: 'Social', 
+    emoji: '👥',
+    description: 'Strengthen relationships and social connections', 
+    created_at: new Date().toISOString() 
+  },
+  { 
+    id: '5', 
+    name: 'Sleep & Recovery', 
+    emoji: '😴',
+    description: 'Improve rest, recovery, and sleep quality', 
+    created_at: new Date().toISOString() 
+  },
+];
+
+const DEMO_GOALS: Goal[] = [
+  // Physical Health Goals
+  { id: '1', category_id: '1', name: 'Lose Weight', description: 'Achieve healthy weight through diet and exercise', duration: '8-12 weeks', created_at: new Date().toISOString() },
+  { id: '2', category_id: '1', name: 'Build Muscle', description: 'Increase muscle mass and strength', duration: '12-16 weeks', created_at: new Date().toISOString() },
+  { id: '3', category_id: '1', name: 'Improve Cardio', description: 'Enhance cardiovascular endurance', duration: '6-8 weeks', created_at: new Date().toISOString() },
+  
+  // Mental Health Goals
+  { id: '4', category_id: '2', name: 'Reduce Stress & Anxiety', description: 'Learn effective stress management and relaxation techniques', duration: '4-6 weeks', created_at: new Date().toISOString() },
+  { id: '5', category_id: '2', name: 'Improve Mood & Emotional Regulation', description: 'Build emotional resilience and positive thinking patterns', duration: '6-8 weeks', created_at: new Date().toISOString() },
+  { id: '6', category_id: '2', name: 'Build Mindfulness & Presence', description: 'Develop awareness, focus, and mindful living practices', duration: '8-10 weeks', created_at: new Date().toISOString() },
+  { id: '7', category_id: '2', name: 'Boost Confidence & Self-Esteem', description: 'Build positive self-image and inner strength', duration: '10-12 weeks', created_at: new Date().toISOString() },
+  
+  // Finance Goals
+  { id: '8', category_id: '3', name: 'Build Emergency Fund', description: 'Create financial security with a comprehensive safety net', duration: '12-16 weeks', created_at: new Date().toISOString() },
+  { id: '9', category_id: '3', name: 'Reduce Debt & Improve Credit', description: 'Pay down debt systematically and build creditworthiness', duration: '16-24 weeks', created_at: new Date().toISOString() },
+  { id: '10', category_id: '3', name: 'Start Investing & Building Wealth', description: 'Begin long-term wealth building through smart investments', duration: '8-12 weeks', created_at: new Date().toISOString() },
+  { id: '11', category_id: '3', name: 'Master Personal Finance', description: 'Develop comprehensive financial literacy and planning skills', duration: '20-24 weeks', created_at: new Date().toISOString() },
+  
+  // Social Goals
+  { id: '12', category_id: '4', name: 'Build Meaningful Connections', description: 'Develop authentic relationships and deepen existing bonds', duration: '6-8 weeks', created_at: new Date().toISOString() },
+  { id: '13', category_id: '4', name: 'Improve Communication Skills', description: 'Master effective communication and active listening', duration: '8-12 weeks', created_at: new Date().toISOString() },
+  { id: '14', category_id: '4', name: 'Expand Social Network', description: 'Meet new people and create valuable social connections', duration: '10-12 weeks', created_at: new Date().toISOString() },
+  { id: '15', category_id: '4', name: 'Strengthen Family Relationships', description: 'Build closer bonds with family members', duration: '6-10 weeks', created_at: new Date().toISOString() },
+  { id: '16', category_id: '4', name: 'Develop Leadership & Influence', description: 'Build skills to positively influence and lead others', duration: '12-16 weeks', created_at: new Date().toISOString() },
+  
+  // Sleep & Recovery Goals
+  { id: '17', category_id: '5', name: 'Enhance Sleep Quality', description: 'Improve rest and recovery through better sleep hygiene', duration: '3-4 weeks', created_at: new Date().toISOString() },
+  { id: '18', category_id: '5', name: 'Optimize Sleep Schedule', description: 'Establish consistent sleep-wake patterns', duration: '2-3 weeks', created_at: new Date().toISOString() },
+  { id: '19', category_id: '5', name: 'Master Recovery Techniques', description: 'Learn advanced recovery and restoration methods', duration: '4-6 weeks', created_at: new Date().toISOString() },
+];
+
+const DEMO_HABITS: Habit[] = [
+  // Physical Health Habits - Level 1
+  { id: '1', goal_id: '1', name: '5-min Morning Stretch', description: 'Start your day with gentle stretching', level: 1, xp: 10, created_at: new Date().toISOString() },
+  { id: '2', goal_id: '1', name: 'Track Water Intake', description: 'Log your daily water consumption', level: 1, xp: 8, created_at: new Date().toISOString() },
+  { id: '3', goal_id: '1', name: 'Healthy Breakfast', description: 'Start with a nutritious meal', level: 1, xp: 15, created_at: new Date().toISOString() },
+  
+  // Physical Health Habits - Level 2
+  { id: '4', goal_id: '1', name: '20-min Morning Run', description: 'Cardiovascular exercise to start the day', level: 2, xp: 25, created_at: new Date().toISOString() },
+  { id: '5', goal_id: '1', name: 'Meal Prep Sunday', description: 'Prepare healthy meals for the week', level: 2, xp: 30, created_at: new Date().toISOString() },
+  
+  // Mental Health Habits - Level 1
+  { id: '6', goal_id: '4', name: '2-Minute Breathing Exercise', description: 'Simple breathing technique to reduce stress', level: 1, xp: 10, created_at: new Date().toISOString() },
+  { id: '7', goal_id: '5', name: 'Daily Gratitude Practice', description: 'Write down three things you\'re grateful for', level: 1, xp: 8, created_at: new Date().toISOString() },
+  { id: '8', goal_id: '7', name: 'Positive Affirmations', description: 'Start your day with empowering self-talk', level: 1, xp: 10, created_at: new Date().toISOString() },
+  
+  // Mental Health Habits - Level 2
+  { id: '9', goal_id: '6', name: '5-Minute Meditation', description: 'Build focus and awareness through meditation', level: 2, xp: 20, created_at: new Date().toISOString() },
+  { id: '10', goal_id: '4', name: 'Stress Relief Journaling', description: 'Write about your stressors and solutions', level: 2, xp: 18, created_at: new Date().toISOString() },
+  
+  // Finance Habits - Level 1
+  { id: '11', goal_id: '8', name: 'Daily Expense Tracking', description: 'Track every expense to understand spending patterns', level: 1, xp: 8, created_at: new Date().toISOString() },
+  { id: '12', goal_id: '8', name: 'Emergency Fund Start', description: 'Begin saving $1 daily for emergency fund', level: 1, xp: 10, created_at: new Date().toISOString() },
+  
+  // Finance Habits - Level 2
+  { id: '13', goal_id: '8', name: 'Weekly Budget Review', description: 'Analyze weekly spending and adjust budget', level: 2, xp: 18, created_at: new Date().toISOString() },
+  { id: '14', goal_id: '10', name: 'Investment Account Setup', description: 'Open investment account and start with index funds', level: 2, xp: 25, created_at: new Date().toISOString() },
+  
+  // Social Habits - Level 1
+  { id: '15', goal_id: '12', name: 'Daily Check-in Text', description: 'Send a caring message to a friend or family member', level: 1, xp: 8, created_at: new Date().toISOString() },
+  { id: '16', goal_id: '12', name: 'Compliment Someone', description: 'Give one genuine compliment daily', level: 1, xp: 10, created_at: new Date().toISOString() },
+  
+  // Social Habits - Level 2
+  { id: '17', goal_id: '12', name: 'Weekly Coffee Date', description: 'Schedule regular one-on-one time with someone', level: 2, xp: 25, created_at: new Date().toISOString() },
+  { id: '18', goal_id: '13', name: 'Practice Small Talk', description: 'Engage in friendly conversation with strangers', level: 2, xp: 18, created_at: new Date().toISOString() },
+  
+  // Sleep & Recovery Habits - Level 1
+  { id: '19', goal_id: '17', name: 'Evening Wind-Down', description: 'Simple routine to signal bedtime to your body', level: 1, xp: 10, created_at: new Date().toISOString() },
+  { id: '20', goal_id: '17', name: 'Consistent Bedtime', description: 'Go to bed at the same time every night', level: 1, xp: 12, created_at: new Date().toISOString() },
+  
+  // Sleep & Recovery Habits - Level 2
+  { id: '21', goal_id: '17', name: 'Bedtime Relaxation Routine', description: 'Prepare your mind and body for restful sleep', level: 2, xp: 20, created_at: new Date().toISOString() },
+  { id: '22', goal_id: '18', name: 'Morning Light Exposure', description: 'Get natural light within 30 minutes of waking', level: 2, xp: 15, created_at: new Date().toISOString() },
+  
+  // Sleep & Recovery Habits - Level 3
+  { id: '23', goal_id: '17', name: 'Sleep Hygiene Mastery', description: 'Optimize your environment and habits for better sleep', level: 3, xp: 30, created_at: new Date().toISOString() },
+  { id: '24', goal_id: '19', name: 'Advanced Recovery Practice', description: 'Implement comprehensive recovery techniques', level: 3, xp: 35, created_at: new Date().toISOString() },
+  
+  // Sleep & Recovery Habits - Level 4
+  { id: '25', goal_id: '17', name: 'Complete Wellness Routine', description: 'Comprehensive mind-body wellness practice', level: 4, xp: 55, created_at: new Date().toISOString() },
 ];
 
 export class DataService {
   private static isOfflineMode(): boolean {
+    // Check if Supabase configuration is valid
     const isValidConfig = process.env.EXPO_PUBLIC_SUPABASE_URL && 
                          process.env.EXPO_PUBLIC_SUPABASE_URL !== 'your-supabase-url-here' &&
-                         process.env.EXPO_PUBLIC_SUPABASE_URL !== 'https://placeholder.supabase.co';
-    return !isValidConfig;
+                         process.env.EXPO_PUBLIC_SUPABASE_URL !== 'https://placeholder.supabase.co' &&
+                         process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY &&
+                         process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY !== 'your-anon-key-here';
+    
+    if (!isValidConfig) {
+      console.log('📱 DataService: Using offline mode - Invalid Supabase configuration');
+      return true;
+    }
+    
+    // In development/testing, you can force offline mode
+    if (process.env.NODE_ENV === 'development' && process.env.EXPO_PUBLIC_FORCE_OFFLINE === 'true') {
+      console.log('📱 DataService: Using offline mode - Forced offline in development');
+      return true;
+    }
+    
+    return false;
   }
 
   static async getCategories(): Promise<Category[]> {
@@ -103,14 +192,23 @@ export class DataService {
   }
 
   static async getGoalById(goalId: string): Promise<Goal | null> {
-    const { data, error } = await supabase
-      .from('goals')
-      .select('*')
-      .eq('id', goalId)
-      .single();
-    
-    if (error && error.code !== 'PGRST116') throw error;
-    return data || null;
+    if (this.isOfflineMode()) {
+      return DEMO_GOALS.find(goal => goal.id === goalId) || null;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('goals')
+        .select('*')
+        .eq('id', goalId)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') throw error;
+      return data || null;
+    } catch (error) {
+      console.warn('DataService: Failed to fetch goal by ID, using demo data:', error);
+      return DEMO_GOALS.find(goal => goal.id === goalId) || null;
+    }
   }
 
   static async getHabitsByGoal(goalId: string): Promise<Habit[]> {
@@ -154,60 +252,110 @@ export class DataService {
   }
 
   static async getUserGoals(userId: string): Promise<UserGoal[]> {
-    const { data, error } = await supabase
-      .from('user_goals')
-      .select('*')
-      .eq('user_id', userId);
-    
-    if (error) throw error;
-    return data || [];
+    if (this.isOfflineMode()) {
+      console.log('📱 DataService: Using offline mode - Returning empty user goals');
+      return [];
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('user_goals')
+        .select('*')
+        .eq('user_id', userId);
+      
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.warn('DataService: Failed to fetch user goals, using offline fallback:', error);
+      return [];
+    }
   }
 
   static async getUserGoalProgress(userId: string, goalId: string): Promise<number> {
-    const { data, error } = await supabase
-      .from('user_goals')
-      .select('progress')
-      .eq('user_id', userId)
-      .eq('goal_id', goalId)
-      .single();
-    
-    if (error && error.code !== 'PGRST116') throw error;
-    return data?.progress || 0;
+    if (this.isOfflineMode()) {
+      console.log('📱 DataService: Using offline mode - Returning 0 progress');
+      return 0;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('user_goals')
+        .select('progress')
+        .eq('user_id', userId)
+        .eq('goal_id', goalId)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') throw error;
+      return data?.progress || 0;
+    } catch (error) {
+      console.warn('DataService: Failed to fetch user goal progress, using offline fallback:', error);
+      return 0;
+    }
   }
 
   static async startUserGoal(userId: string, goalId: string): Promise<void> {
-    const { error } = await supabase
-      .from('user_goals')
-      .upsert({
-        user_id: userId,
-        goal_id: goalId,
-        progress: 0,
-        started_at: new Date().toISOString(),
-      });
-    
-    if (error) throw error;
+    if (this.isOfflineMode()) {
+      console.log('📱 DataService: Using offline mode - Simulating user goal start');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('user_goals')
+        .upsert({
+          user_id: userId,
+          goal_id: goalId,
+          progress: 0,
+          started_at: new Date().toISOString(),
+        });
+      
+      if (error) throw error;
+    } catch (error) {
+      console.warn('DataService: Failed to start user goal, using offline fallback:', error);
+      // In offline mode, just return without error
+    }
   }
 
   static async getUserHabits(userId: string): Promise<UserHabit[]> {
-    const { data, error } = await supabase
-      .from('user_habits')
-      .select('*')
-      .eq('user_id', userId);
-    
-    if (error) throw error;
-    return data || [];
+    if (this.isOfflineMode()) {
+      console.log('📱 DataService: Using offline mode - Returning empty user habits');
+      return [];
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('user_habits')
+        .select('*')
+        .eq('user_id', userId);
+      
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.warn('DataService: Failed to fetch user habits, using offline fallback:', error);
+      return [];
+    }
   }
 
   static async getUserHabit(userId: string, habitId: string): Promise<UserHabit | null> {
-    const { data, error } = await supabase
-      .from('user_habits')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('habit_id', habitId)
-      .single();
-    
-    if (error && error.code !== 'PGRST116') throw error;
-    return data || null;
+    if (this.isOfflineMode()) {
+      console.log('📱 DataService: Using offline mode - Returning null user habit');
+      return null;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('user_habits')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('habit_id', habitId)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') throw error;
+      return data || null;
+    } catch (error) {
+      console.warn('DataService: Failed to fetch user habit, using offline fallback:', error);
+      return null;
+    }
   }
 
   static async toggleHabitCompletion(userId: string, habitId: string, xp: number): Promise<boolean> {

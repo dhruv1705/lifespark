@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { CharacterType } from '../components/MotivationMascot';
 
 interface StoredMusicPreferences {
   globalDefault: string;
@@ -14,10 +15,24 @@ interface StoredAudioSettings {
   musicPreferences?: StoredMusicPreferences;
 }
 
+interface StoredCharacterPreferences {
+  selectedCharacter: CharacterType;
+  characterSelectedAt: string;
+  hasCompletedCharacterSelection: boolean;
+  allowCharacterChanges: boolean;
+}
+
+interface StoredViewPreferences {
+  homeViewMode: 'grid' | 'journey';
+  lastViewChange: string;
+}
+
 const STORAGE_KEYS = {
   AUDIO_SETTINGS: '@lifespark_audio_settings',
   MUSIC_PREFERENCES: '@lifespark_music_preferences',
   USER_PREFERENCES: '@lifespark_user_preferences',
+  CHARACTER_PREFERENCES: '@lifespark_character_preferences',
+  VIEW_PREFERENCES: '@lifespark_view_preferences',
 } as const;
 
 class SettingsStorageService {
@@ -237,6 +252,151 @@ class SettingsStorageService {
     } catch (error) {
       console.error('Error importing settings:', error);
       return false;
+    }
+  }
+
+  // Character Preferences Persistence
+  
+  async saveCharacterPreferences(preferences: Partial<StoredCharacterPreferences>): Promise<void> {
+    try {
+      const existingPreferences = await this.loadCharacterPreferences();
+      const updatedPreferences = { ...existingPreferences, ...preferences };
+      
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.CHARACTER_PREFERENCES,
+        JSON.stringify(updatedPreferences)
+      );
+      
+      console.log('🎭 Character preferences saved successfully');
+    } catch (error) {
+      console.error('Error saving character preferences:', error);
+    }
+  }
+
+  async loadCharacterPreferences(): Promise<StoredCharacterPreferences> {
+    try {
+      const stored = await AsyncStorage.getItem(STORAGE_KEYS.CHARACTER_PREFERENCES);
+      
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        console.log('🎭 Character preferences loaded successfully');
+        return parsed;
+      }
+      
+      // Return default preferences for new users
+      return this.getDefaultCharacterPreferences();
+    } catch (error) {
+      console.error('Error loading character preferences:', error);
+      return this.getDefaultCharacterPreferences();
+    }
+  }
+
+  private getDefaultCharacterPreferences(): StoredCharacterPreferences {
+    return {
+      selectedCharacter: 'plant',
+      characterSelectedAt: new Date().toISOString(),
+      hasCompletedCharacterSelection: false,
+      allowCharacterChanges: true,
+    };
+  }
+
+  async selectCharacter(characterType: CharacterType): Promise<void> {
+    try {
+      await this.saveCharacterPreferences({
+        selectedCharacter: characterType,
+        characterSelectedAt: new Date().toISOString(),
+        hasCompletedCharacterSelection: true,
+      });
+      
+      console.log(`🎭 Character selected: ${characterType}`);
+    } catch (error) {
+      console.error('Error selecting character:', error);
+    }
+  }
+
+  async getSelectedCharacter(): Promise<CharacterType> {
+    try {
+      const preferences = await this.loadCharacterPreferences();
+      return preferences.selectedCharacter;
+    } catch (error) {
+      console.error('Error getting selected character:', error);
+      return 'plant'; // Fallback
+    }
+  }
+
+  async hasCompletedCharacterSelection(): Promise<boolean> {
+    try {
+      const preferences = await this.loadCharacterPreferences();
+      return preferences.hasCompletedCharacterSelection;
+    } catch (error) {
+      console.error('Error checking character selection status:', error);
+      return false;
+    }
+  }
+
+  // View Preferences Persistence
+  
+  async saveViewPreferences(preferences: Partial<StoredViewPreferences>): Promise<void> {
+    try {
+      const existingPreferences = await this.loadViewPreferences();
+      const updatedPreferences = { ...existingPreferences, ...preferences };
+      
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.VIEW_PREFERENCES,
+        JSON.stringify(updatedPreferences)
+      );
+      
+      console.log('👀 View preferences saved successfully');
+    } catch (error) {
+      console.error('Error saving view preferences:', error);
+    }
+  }
+
+  async loadViewPreferences(): Promise<StoredViewPreferences> {
+    try {
+      const stored = await AsyncStorage.getItem(STORAGE_KEYS.VIEW_PREFERENCES);
+      
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        console.log('👀 View preferences loaded successfully');
+        return parsed;
+      }
+      
+      // Return default preferences for new users
+      return this.getDefaultViewPreferences();
+    } catch (error) {
+      console.error('Error loading view preferences:', error);
+      return this.getDefaultViewPreferences();
+    }
+  }
+
+  private getDefaultViewPreferences(): StoredViewPreferences {
+    return {
+      homeViewMode: 'grid',
+      lastViewChange: new Date().toISOString(),
+    };
+  }
+
+  async setHomeViewMode(mode: 'grid' | 'journey'): Promise<void> {
+    try {
+      await this.saveViewPreferences({
+        homeViewMode: mode,
+        lastViewChange: new Date().toISOString(),
+      });
+      
+      console.log(`👀 Home view mode set to: ${mode}`);
+    } catch (error) {
+      console.error('Error setting home view mode:', error);
+    }
+  }
+
+  async getHomeViewMode(): Promise<'grid' | 'journey'> {
+    try {
+      const preferences = await this.loadViewPreferences();
+      return preferences.homeViewMode;
+    } catch (error) {
+      console.error('Error getting home view mode:', error);
+      return 'grid'; // Fallback to grid view
     }
   }
 

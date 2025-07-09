@@ -1,0 +1,508 @@
+import React, { useEffect, useState } from 'react';
+import { View, ScrollView, StyleSheet, Text, ActivityIndicator } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { JourneyNode, NodeStatus } from './JourneyNode';
+import { PathConnector } from './PathConnector';
+import { CategoryDropdownHeader } from './CategoryDropdownHeader';
+import { CompactToggle } from './CompactToggle';
+import { FilterTab, FilterState } from './FilterTab';
+import { GoalDropdown } from './GoalDropdown';
+import { DataService } from '../services/dataService';
+import { hasVideo, getVideoConfig } from '../data/videoHelper';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { theme } from '../theme';
+import { Database } from '../lib/database.types';
+
+type Category = Database['public']['Tables']['categories']['Row'];
+type Goal = Database['public']['Tables']['goals']['Row'];
+type Habit = Database['public']['Tables']['habits']['Row'];
+
+interface JourneyData {
+  id: string;
+  title: string;
+  emoji: string;
+  status: NodeStatus;
+  progress?: number;
+  position: 'left' | 'right' | 'center';
+  category?: Category;
+  goal?: Goal;
+  habit?: Habit;
+  goalName?: string; // For displaying goal text above habits
+  isGoalHeader?: boolean; // To distinguish goal headers from habit nodes
+  isGoalSeparator?: boolean; // To distinguish goal separators
+}
+
+interface JourneyViewProps {
+  categories: Category[];
+  isJourneyView: boolean;
+  onToggle: (isJourneyView: boolean) => void;
+  onHabitToggle: (habit: Habit) => void;
+}
+
+export const JourneyView: React.FC<JourneyViewProps> = ({ categories, isJourneyView, onToggle, onHabitToggle }) => {
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+  const [journeyData, setJourneyData] = useState<JourneyData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<Category | undefined>();
+  const [availableGoals, setAvailableGoals] = useState<Goal[]>([]);
+  const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
+  const [isFilterExpanded, setIsFilterExpanded] = useState(false);
+  const [filters, setFilters] = useState<FilterState>({
+    timeFilter: 'daily',
+    statusFilter: 'all',
+    goalFilter: 'all',
+  });
+
+  useEffect(() => {
+    // Initialize with first category
+    if (categories.length > 0 && !selectedCategory) {
+      setSelectedCategory(categories[0]);
+    }
+    // Load saved filters
+    loadFilterPreferences();
+  }, [categories]);
+
+  const loadFilterPreferences = async () => {
+    try {
+      const savedFilters = await AsyncStorage.getItem('journeyFilters');
+      if (savedFilters) {
+        const parsedFilters = JSON.parse(savedFilters);
+        setFilters(parsedFilters);
+      }
+    } catch (error) {
+      console.error('Error loading filter preferences:', error);
+    }
+  };
+
+  const saveFilterPreferences = async (newFilters: FilterState) => {
+    try {
+      await AsyncStorage.setItem('journeyFilters', JSON.stringify(newFilters));
+    } catch (error) {
+      console.error('Error saving filter preferences:', error);
+    }
+  };
+
+  const handleFiltersChange = (newFilters: FilterState) => {
+    setFilters(newFilters);
+    saveFilterPreferences(newFilters);
+  };
+
+  useEffect(() => {
+    if (selectedCategory) {
+      loadJourneyData(selectedCategory.id);
+    }
+  }, [selectedCategory, filters, selectedGoal]);
+
+  const getUserCompletions = async (timeFilter: 'daily' | 'weekly' | 'monthly') => {
+    try {
+      // For demo purposes, we'll simulate completions without database calls
+      // In a real app, you'd get the actual user ID from authentication
+      
+      // Return mock completions for demonstration
+      const mockCompletions = [
+        { habit_id: '1', completed_date: new Date().toISOString().split('T')[0] },
+        { habit_id: '3', completed_date: new Date().toISOString().split('T')[0] },
+      ];
+      
+      switch (timeFilter) {
+        case 'daily':
+          return mockCompletions;
+        case 'weekly':
+          // Return empty array for now, we'll implement proper weekly completions later
+          return [];
+        case 'monthly':
+          // Return empty array for now, we'll implement proper monthly completions later
+          return [];
+        default:
+          return [];
+      }
+    } catch (error) {
+      console.error('Error getting user completions:', error);
+      return [];
+    }
+  };
+
+  const loadJourneyData = async (categoryId?: string) => {
+    try {
+      setLoading(true);
+      
+      // Get the target category
+      const targetCategory = categoryId ? 
+        categories.find(c => c.id === categoryId) : 
+        selectedCategory;
+      
+      if (!targetCategory) {
+        // Set first category as default
+        if (categories.length > 0) {
+          setSelectedCategory(categories[0]);
+          return;
+        }
+        return;
+      }
+      
+      // Get goals for the selected category
+      const goals = await DataService.getGoalsByCategory(targetCategory.id);
+      setAvailableGoals(goals);
+      
+      // Set first goal as selected if none selected
+      if (!selectedGoal && goals.length > 0) {
+        setSelectedGoal(goals[0]);
+      }
+      
+      // Filter goals based on goal filter and selected goal
+      let filteredGoals = goals;
+      
+      if (selectedGoal) {
+        // If a specific goal is selected, show only that goal
+        filteredGoals = [selectedGoal];
+      } else if (filters.goalFilter !== 'all') {
+        // Otherwise filter by goal filter
+        filteredGoals = goals.filter(goal => 
+          Array.isArray(filters.goalFilter) && filters.goalFilter.includes(goal.id)
+        );
+      }
+      
+      // Get user completions based on time filter
+      const completions = await getUserCompletions(filters.timeFilter);
+      
+      // Get habits for each goal and create journey data
+      const transformedData: JourneyData[] = [];
+      let habitIndex = 0;
+      
+      for (const [goalIndex, goal] of filteredGoals.entries()) {
+        // Get habits for this goal
+        const habits = await DataService.getHabitsByGoal(goal.id);
+        
+        // Filter habits based on status filter
+        const filteredHabits = habits.filter(habit => {
+          const isCompleted = completions.some(completion => completion.habit_id === habit.id);
+          
+          if (filters.statusFilter === 'completed') {
+            return isCompleted;
+          } else if (filters.statusFilter === 'pending') {
+            return !isCompleted;
+          } else {
+            return true; // 'all' - show all habits
+          }
+        });
+        
+        // Only add goal header and habits if there are habits to show
+        if (filteredHabits.length > 0) {
+          // Add separator before goal header (except for first goal)
+          if (goalIndex > 0) {
+            transformedData.push({
+              id: `goal-separator-${goal.id}`,
+              title: '',
+              emoji: '',
+              status: 'completed',
+              position: 'center',
+              category: targetCategory,
+              goal: goal,
+              goalName: '',
+              isGoalHeader: false,
+              isGoalSeparator: true,
+            });
+          }
+          
+          // Add goal header (text only, not clickable)
+          transformedData.push({
+            id: `goal-header-${goal.id}`,
+            title: goal.name,
+            emoji: '',
+            status: 'completed', // Not used for headers
+            position: 'center',
+            category: targetCategory,
+            goal: goal,
+            goalName: goal.name,
+            isGoalHeader: true,
+          });
+          
+          // Add habits as journey nodes
+          for (const habit of filteredHabits) {
+            // Determine position (zigzag pattern)
+            const position = habitIndex % 3 === 0 ? 'center' : habitIndex % 3 === 1 ? 'left' : 'right';
+            
+            // Determine status based on completion
+            const isCompleted = completions.some(completion => completion.habit_id === habit.id);
+            let status: NodeStatus;
+            
+            if (isCompleted) {
+              status = 'completed';
+            } else if (habitIndex === 0 && !isCompleted) {
+              status = 'current';
+            } else if (habitIndex === filteredHabits.length - 1) {
+              status = 'bonus';
+            } else {
+              status = 'locked';
+            }
+
+            transformedData.push({
+              id: habit.id,
+              title: habit.name,
+              emoji: targetCategory.emoji || '📱',
+              status,
+              progress: status === 'current' ? 65 : 0,
+              position,
+              category: targetCategory,
+              goal: goal,
+              habit: habit,
+              goalName: goal.name,
+              isGoalHeader: false,
+            });
+            
+            habitIndex++;
+          }
+        }
+      }
+
+      setJourneyData(transformedData);
+      
+      // Set first category as selected by default if not already set
+      if (!selectedCategory && categories.length > 0) {
+        setSelectedCategory(categories[0]);
+      }
+    } catch (error) {
+      console.error('Error loading journey data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  const handleNodePress = (item: JourneyData) => {
+    if (item.habit && !item.isGoalHeader) {
+      const hasVideoContent = hasVideo(item.habit.name);
+      const videoConfig = getVideoConfig(item.habit.name);
+      
+      if (hasVideoContent && videoConfig) {
+        // Navigate to video player with habit data for XP integration
+        navigation.navigate('VideoPlayer', {
+          videoUrl: videoConfig.videoUrl,
+          title: videoConfig.title || item.habit.name,
+          habitId: item.habit.id,
+          habitXp: item.habit.xp
+        });
+      } else {
+        // For habits without videos, just toggle completion
+        onHabitToggle(item.habit);
+      }
+    }
+  };
+
+  const handleCategorySelect = (category: Category) => {
+    setSelectedCategory(category);
+    setSelectedGoal(null); // Reset selected goal when category changes
+    // Don't navigate away, just update the journey content
+    loadJourneyData(category.id);
+  };
+
+  const renderJourneyNode = (item: JourneyData, index: number) => {
+    const nextItem = journeyData[index + 1];
+    const showConnector = nextItem !== undefined && !item.isGoalHeader && !item.isGoalSeparator;
+    const connectorCompleted = item.status === 'completed';
+
+    // Render goal separator
+    if (item.isGoalSeparator) {
+      return (
+        <View key={item.id} style={styles.goalSeparator}>
+          <View style={styles.separatorLine} />
+        </View>
+      );
+    }
+
+    // Render goal header as dropdown
+    if (item.isGoalHeader) {
+      return (
+        <GoalDropdown
+          key={item.id}
+          goals={availableGoals}
+          selectedGoal={item.goal!}
+          onSelectGoal={setSelectedGoal}
+        />
+      );
+    }
+
+    // Render habit node
+    return (
+      <View key={item.id} style={styles.nodeContainer}>
+        <JourneyNode
+          id={item.id}
+          title={item.title}
+          emoji={item.emoji}
+          status={item.status}
+          progress={item.progress}
+          position={item.position}
+          onPress={() => handleNodePress(item)}
+        />
+        
+        {showConnector && (
+          <PathConnector
+            fromPosition={item.position}
+            toPosition={nextItem.position}
+            isCompleted={connectorCompleted}
+            height={100}
+            showProgress={item.status === 'current'}
+            progress={item.progress || 0}
+          />
+        )}
+      </View>
+    );
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={theme.colors.primary.blue} />
+        <Text style={styles.loadingText}>Loading your journey...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.headerContainer}>
+        <Text style={styles.appTitle}>Lifespark</Text>
+        <CompactToggle
+          isJourneyView={isJourneyView}
+          onToggle={onToggle}
+          style={styles.headerToggle}
+        />
+      </View>
+      
+      <CategoryDropdownHeader
+        categories={categories}
+        selectedCategory={selectedCategory}
+        onSelectCategory={handleCategorySelect}
+      />
+      
+      <FilterTab
+        isExpanded={isFilterExpanded}
+        onToggle={() => setIsFilterExpanded(!isFilterExpanded)}
+        filters={filters}
+        onFiltersChange={handleFiltersChange}
+        availableGoals={availableGoals}
+      />
+      
+      <ScrollView
+        style={styles.scrollContainer}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.journeyContainer}>
+          {journeyData.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateText}>
+                No habits found matching your filters
+              </Text>
+              <Text style={styles.emptyStateSubtext}>
+                Try adjusting your filters or check back later
+              </Text>
+            </View>
+          ) : (
+            journeyData.map((item, index) => renderJourneyNode(item, index))
+          )}
+        </View>
+      </ScrollView>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.md,
+    paddingBottom: theme.spacing.sm,
+  },
+  appTitle: {
+    fontSize: theme.typography.sizes.xl,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.colors.text.primary,
+  },
+  headerToggle: {
+    transform: [{ scale: 0.8 }],
+  },
+  scrollContainer: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingTop: theme.spacing.sm,
+    paddingBottom: theme.spacing.xl,
+  },
+  journeyContainer: {
+    paddingHorizontal: theme.spacing.md,
+  },
+  nodeContainer: {
+    position: 'relative',
+    marginBottom: theme.spacing.md,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: theme.spacing.md,
+    fontSize: theme.typography.sizes.md,
+    color: theme.colors.text.secondary,
+  },
+  goalHeaderContainer: {
+    alignItems: 'center',
+    marginTop: theme.spacing.xl,
+    marginBottom: theme.spacing.md,
+    marginHorizontal: theme.spacing.lg,
+  },
+  goalHeaderText: {
+    fontSize: theme.typography.sizes.xl,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.colors.text.inverse,
+    textAlign: 'center',
+    backgroundColor: theme.colors.primary.green,
+    paddingHorizontal: theme.spacing.xl,
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.borderRadius.lg,
+    borderWidth: 2,
+    borderColor: theme.colors.primary.blue,
+    ...theme.shadows.md,
+    overflow: 'hidden',
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: theme.spacing.xxl * 2,
+    paddingHorizontal: theme.spacing.lg,
+  },
+  emptyStateText: {
+    fontSize: theme.typography.sizes.lg,
+    fontWeight: theme.typography.weights.semibold,
+    color: theme.colors.text.secondary,
+    textAlign: 'center',
+    marginBottom: theme.spacing.sm,
+  },
+  emptyStateSubtext: {
+    fontSize: theme.typography.sizes.sm,
+    color: theme.colors.text.secondary,
+    textAlign: 'center',
+    opacity: 0.7,
+  },
+  goalSeparator: {
+    alignItems: 'center',
+    marginVertical: theme.spacing.xl,
+    paddingHorizontal: theme.spacing.xl,
+  },
+  separatorLine: {
+    width: '60%',
+    height: 2,
+    backgroundColor: theme.colors.border,
+    borderRadius: 1,
+    opacity: 0.3,
+  },
+});
