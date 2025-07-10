@@ -92,7 +92,7 @@ export interface Database {
           name: string;
           description: string;
           level: number;
-          xp: number;
+          xp: number,
           created_at?: string;
         };
         Update: {

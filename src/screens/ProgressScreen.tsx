@@ -545,15 +545,17 @@ const styles = StyleSheet.create({
   },
   characterSection: {
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
+    paddingTop: theme.spacing.md,
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
-    justifyContent: 'flex-start',
-    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    alignItems: 'stretch',
+    gap: theme.spacing.sm,
   },
   statCard: {
     backgroundColor: theme.colors.surface,

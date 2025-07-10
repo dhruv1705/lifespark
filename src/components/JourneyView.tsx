@@ -13,6 +13,9 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { theme } from '../theme';
 import { Database } from '../lib/database.types';
+import { useAuth } from '../context/AuthContext';
+import { dataSync, DATA_SYNC_EVENTS } from '../utils/dataSync';
+import { RootStackParamList } from '../types';
 
 type Category = Database['public']['Tables']['categories']['Row'];
 type Goal = Database['public']['Tables']['goals']['Row'];
@@ -28,9 +31,9 @@ interface JourneyData {
   category?: Category;
   goal?: Goal;
   habit?: Habit;
-  goalName?: string; // For displaying goal text above habits
-  isGoalHeader?: boolean; // To distinguish goal headers from habit nodes
-  isGoalSeparator?: boolean; // To distinguish goal separators
+  goalName?: string; 
+  isGoalHeader?: boolean; 
+  isGoalSeparator?: boolean; 
 }
 
 interface JourneyViewProps {
@@ -42,6 +45,7 @@ interface JourneyViewProps {
 
 export const JourneyView: React.FC<JourneyViewProps> = ({ categories, isJourneyView, onToggle, onHabitToggle }) => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+  const { user } = useAuth();
   const [journeyData, setJourneyData] = useState<JourneyData[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<Category | undefined>();
@@ -55,13 +59,48 @@ export const JourneyView: React.FC<JourneyViewProps> = ({ categories, isJourneyV
   });
 
   useEffect(() => {
-    // Initialize with first category
     if (categories.length > 0 && !selectedCategory) {
       setSelectedCategory(categories[0]);
     }
-    // Load saved filters
     loadFilterPreferences();
   }, [categories]);
+
+  useEffect(() => {
+    const handleHabitToggled = () => {
+      console.log('🔄 Journey view received habit toggle event - refreshing data');
+      if (selectedCategory) {
+        loadJourneyData(selectedCategory.id);
+      }
+    };
+
+    const handleXPUpdated = () => {
+      console.log('🔄 Journey view received XP update event - refreshing data');
+      if (selectedCategory) {
+        loadJourneyData(selectedCategory.id);
+      }
+    };
+
+    const handleProgressUpdated = (data: { habitId: string; progress: number }) => {
+      console.log(`🔄 Journey view received progress update for habit ${data.habitId}: ${data.progress.toFixed(1)}%`);
+      setJourneyData(prevData => 
+        prevData.map(item => 
+          item.id === data.habitId 
+            ? { ...item, progress: data.progress } 
+            : item
+        )
+      );
+    };
+
+    dataSync.on(DATA_SYNC_EVENTS.HABIT_TOGGLED, handleHabitToggled);
+    dataSync.on(DATA_SYNC_EVENTS.XP_UPDATED, handleXPUpdated);
+    dataSync.on(DATA_SYNC_EVENTS.HABIT_PROGRESS_UPDATED, handleProgressUpdated);
+
+    return () => {
+      dataSync.off(DATA_SYNC_EVENTS.HABIT_TOGGLED, handleHabitToggled);
+      dataSync.off(DATA_SYNC_EVENTS.XP_UPDATED, handleXPUpdated);
+      dataSync.off(DATA_SYNC_EVENTS.HABIT_PROGRESS_UPDATED, handleProgressUpdated);
+    };
+  }, [selectedCategory]);
 
   const loadFilterPreferences = async () => {
     try {
@@ -96,24 +135,15 @@ export const JourneyView: React.FC<JourneyViewProps> = ({ categories, isJourneyV
 
   const getUserCompletions = async (timeFilter: 'daily' | 'weekly' | 'monthly') => {
     try {
-      // For demo purposes, we'll simulate completions without database calls
-      // In a real app, you'd get the actual user ID from authentication
-      
-      // Return mock completions for demonstration
-      const mockCompletions = [
-        { habit_id: '1', completed_date: new Date().toISOString().split('T')[0] },
-        { habit_id: '3', completed_date: new Date().toISOString().split('T')[0] },
-      ];
+      if (!user) return [];
       
       switch (timeFilter) {
         case 'daily':
-          return mockCompletions;
+          return await DataService.getTodayCompletions(user.id);
         case 'weekly':
-          // Return empty array for now, we'll implement proper weekly completions later
-          return [];
+          return await DataService.getTodayCompletions(user.id);
         case 'monthly':
-          // Return empty array for now, we'll implement proper monthly completions later
-          return [];
+          return await DataService.getTodayCompletions(user.id);
         default:
           return [];
       }
@@ -126,14 +156,12 @@ export const JourneyView: React.FC<JourneyViewProps> = ({ categories, isJourneyV
   const loadJourneyData = async (categoryId?: string) => {
     try {
       setLoading(true);
-      
-      // Get the target category
+
       const targetCategory = categoryId ? 
         categories.find(c => c.id === categoryId) : 
         selectedCategory;
       
       if (!targetCategory) {
-        // Set first category as default
         if (categories.length > 0) {
           setSelectedCategory(categories[0]);
           return;
@@ -141,40 +169,30 @@ export const JourneyView: React.FC<JourneyViewProps> = ({ categories, isJourneyV
         return;
       }
       
-      // Get goals for the selected category
       const goals = await DataService.getGoalsByCategory(targetCategory.id);
       setAvailableGoals(goals);
-      
-      // Set first goal as selected if none selected
+
       if (!selectedGoal && goals.length > 0) {
         setSelectedGoal(goals[0]);
       }
-      
-      // Filter goals based on goal filter and selected goal
+    
       let filteredGoals = goals;
       
       if (selectedGoal) {
-        // If a specific goal is selected, show only that goal
         filteredGoals = [selectedGoal];
       } else if (filters.goalFilter !== 'all') {
-        // Otherwise filter by goal filter
         filteredGoals = goals.filter(goal => 
           Array.isArray(filters.goalFilter) && filters.goalFilter.includes(goal.id)
         );
       }
-      
-      // Get user completions based on time filter
+
       const completions = await getUserCompletions(filters.timeFilter);
-      
-      // Get habits for each goal and create journey data
       const transformedData: JourneyData[] = [];
       let habitIndex = 0;
       
       for (const [goalIndex, goal] of filteredGoals.entries()) {
-        // Get habits for this goal
         const habits = await DataService.getHabitsByGoal(goal.id);
         
-        // Filter habits based on status filter
         const filteredHabits = habits.filter(habit => {
           const isCompleted = completions.some(completion => completion.habit_id === habit.id);
           
@@ -187,9 +205,7 @@ export const JourneyView: React.FC<JourneyViewProps> = ({ categories, isJourneyV
           }
         });
         
-        // Only add goal header and habits if there are habits to show
         if (filteredHabits.length > 0) {
-          // Add separator before goal header (except for first goal)
           if (goalIndex > 0) {
             transformedData.push({
               id: `goal-separator-${goal.id}`,
@@ -205,12 +221,11 @@ export const JourneyView: React.FC<JourneyViewProps> = ({ categories, isJourneyV
             });
           }
           
-          // Add goal header (text only, not clickable)
           transformedData.push({
             id: `goal-header-${goal.id}`,
             title: goal.name,
             emoji: '',
-            status: 'completed', // Not used for headers
+            status: 'completed', 
             position: 'center',
             category: targetCategory,
             goal: goal,
@@ -218,23 +233,34 @@ export const JourneyView: React.FC<JourneyViewProps> = ({ categories, isJourneyV
             isGoalHeader: true,
           });
           
-          // Add habits as journey nodes
           for (const habit of filteredHabits) {
-            // Determine position (zigzag pattern)
             const position = habitIndex % 3 === 0 ? 'center' : habitIndex % 3 === 1 ? 'left' : 'right';
             
-            // Determine status based on completion
-            const isCompleted = completions.some(completion => completion.habit_id === habit.id);
+            const completionRecord = completions.find(completion => completion.habit_id === habit.id);
+            const isCompleted = !!completionRecord;
+            console.log(`🔍 Journey: Checking habit ${habit.id} (${habit.name}), isCompleted: ${isCompleted}`);
+            console.log(`🔍 Journey: Completion record:`, completionRecord);
+            console.log(`🔍 Journey: Available completions:`, completions.map(c => ({ id: c.habit_id, completed_date: c.completed_date })));
+            
             let status: NodeStatus;
+            let progress = 0;
             
             if (isCompleted) {
               status = 'completed';
+              progress = 100;
+              console.log(`✅ Journey: Setting habit ${habit.id} as completed with 100% progress`);
             } else if (habitIndex === 0 && !isCompleted) {
               status = 'current';
+              progress = 0; 
+              console.log(`🔄 Journey: Setting habit ${habit.id} as current with 0% progress`);
             } else if (habitIndex === filteredHabits.length - 1) {
               status = 'bonus';
+              progress = 0;
+              console.log(`🎁 Journey: Setting habit ${habit.id} as bonus with 0% progress`);
             } else {
               status = 'locked';
+              progress = 0;
+              console.log(`🔒 Journey: Setting habit ${habit.id} as locked with 0% progress`);
             }
 
             transformedData.push({
@@ -242,7 +268,7 @@ export const JourneyView: React.FC<JourneyViewProps> = ({ categories, isJourneyV
               title: habit.name,
               emoji: targetCategory.emoji || '📱',
               status,
-              progress: status === 'current' ? 65 : 0,
+              progress,
               position,
               category: targetCategory,
               goal: goal,
@@ -258,7 +284,6 @@ export const JourneyView: React.FC<JourneyViewProps> = ({ categories, isJourneyV
 
       setJourneyData(transformedData);
       
-      // Set first category as selected by default if not already set
       if (!selectedCategory && categories.length > 0) {
         setSelectedCategory(categories[0]);
       }
@@ -276,7 +301,6 @@ export const JourneyView: React.FC<JourneyViewProps> = ({ categories, isJourneyV
       const videoConfig = getVideoConfig(item.habit.name);
       
       if (hasVideoContent && videoConfig) {
-        // Navigate to video player with habit data for XP integration
         navigation.navigate('VideoPlayer', {
           videoUrl: videoConfig.videoUrl,
           title: videoConfig.title || item.habit.name,
@@ -284,7 +308,6 @@ export const JourneyView: React.FC<JourneyViewProps> = ({ categories, isJourneyV
           habitXp: item.habit.xp
         });
       } else {
-        // For habits without videos, just toggle completion
         onHabitToggle(item.habit);
       }
     }
@@ -292,8 +315,7 @@ export const JourneyView: React.FC<JourneyViewProps> = ({ categories, isJourneyV
 
   const handleCategorySelect = (category: Category) => {
     setSelectedCategory(category);
-    setSelectedGoal(null); // Reset selected goal when category changes
-    // Don't navigate away, just update the journey content
+    setSelectedGoal(null); 
     loadJourneyData(category.id);
   };
 
@@ -301,8 +323,6 @@ export const JourneyView: React.FC<JourneyViewProps> = ({ categories, isJourneyV
     const nextItem = journeyData[index + 1];
     const showConnector = nextItem !== undefined && !item.isGoalHeader && !item.isGoalSeparator;
     const connectorCompleted = item.status === 'completed';
-
-    // Render goal separator
     if (item.isGoalSeparator) {
       return (
         <View key={item.id} style={styles.goalSeparator}>
@@ -311,7 +331,6 @@ export const JourneyView: React.FC<JourneyViewProps> = ({ categories, isJourneyV
       );
     }
 
-    // Render goal header as dropdown
     if (item.isGoalHeader) {
       return (
         <GoalDropdown
@@ -323,7 +342,6 @@ export const JourneyView: React.FC<JourneyViewProps> = ({ categories, isJourneyV
       );
     }
 
-    // Render habit node
     return (
       <View key={item.id} style={styles.nodeContainer}>
         <JourneyNode
@@ -341,7 +359,7 @@ export const JourneyView: React.FC<JourneyViewProps> = ({ categories, isJourneyV
             fromPosition={item.position}
             toPosition={nextItem.position}
             isCompleted={connectorCompleted}
-            height={100}
+            height={120}
             showProgress={item.status === 'current'}
             progress={item.progress || 0}
           />
@@ -396,7 +414,6 @@ export const JourneyView: React.FC<JourneyViewProps> = ({ categories, isJourneyV
                 No habits found matching your filters
               </Text>
               <Text style={styles.emptyStateSubtext}>
-                Try adjusting your filters or check back later
               </Text>
             </View>
           ) : (
@@ -441,7 +458,7 @@ const styles = StyleSheet.create({
   },
   nodeContainer: {
     position: 'relative',
-    marginBottom: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
   },
   loadingContainer: {
     flex: 1,

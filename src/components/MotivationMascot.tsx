@@ -33,7 +33,6 @@ export const MotivationMascot: React.FC<MotivationMascotProps> = ({
   const messageAnim = useRef(new Animated.Value(0)).current;
   const [isBlinking, setIsBlinking] = useState(false);
 
-  // Character definitions by type and evolution
   const getCharacterDefinitions = () => {
     const characters = {
       plant: {
@@ -76,7 +75,6 @@ export const MotivationMascot: React.FC<MotivationMascotProps> = ({
     return characters[characterType][evolution];
   };
 
-  // Get character appearance based on type and evolution
   const getCharacterAppearance = () => {
     const character = getCharacterDefinitions();
     
@@ -114,8 +112,7 @@ export const MotivationMascot: React.FC<MotivationMascotProps> = ({
       ...themes[characterType]
     };
   };
-
-  // Get character-specific mood expressions
+ 
   const getMoodExpression = () => {
     const base = getCharacterAppearance();
     
@@ -174,8 +171,7 @@ export const MotivationMascot: React.FC<MotivationMascotProps> = ({
 
   const appearance = getMoodExpression();
   const sizeConfig = getSizeConfig(size);
-  
-  // Get character-specific animation timing
+
   const getAnimationTiming = () => {
     const timings = {
       plant: { bounceSpeed: 2500, intensity: 1.1, blinkInterval: 4000 },
@@ -192,8 +188,6 @@ export const MotivationMascot: React.FC<MotivationMascotProps> = ({
 
   useEffect(() => {
     if (!animated) return;
-
-    // Character-specific bounce animation
     const bounceLoop = Animated.loop(
       Animated.sequence([
         Animated.timing(bounceAnim, {
@@ -214,7 +208,6 @@ export const MotivationMascot: React.FC<MotivationMascotProps> = ({
       ])
     );
 
-    // Character-specific glow effect
     const glowIntensity = mood === 'celebrating' || mood === 'excited' ? 1 : 0.3;
     const glowLoop = Animated.loop(
       Animated.sequence([
@@ -234,7 +227,6 @@ export const MotivationMascot: React.FC<MotivationMascotProps> = ({
     bounceLoop.start();
     glowLoop.start();
 
-    // Character-specific blinking
     const blinkInterval = setInterval(() => {
       if (Math.random() > 0.7) {
         setIsBlinking(true);
@@ -260,7 +252,6 @@ export const MotivationMascot: React.FC<MotivationMascotProps> = ({
     };
   }, [animated, mood, characterType, animationTiming]);
 
-  // Show message animation
   useEffect(() => {
     if (message && showMessage) {
       Animated.sequence([
@@ -281,7 +272,6 @@ export const MotivationMascot: React.FC<MotivationMascotProps> = ({
 
   const handlePress = () => {
     if (onPress) {
-      // Character-specific press animation
       const pressAnimations = {
         plant: { compress: 0.9, expand: 1.1, duration: 200 },
         dog: { compress: 0.85, expand: 1.4, duration: 100 },
@@ -509,7 +499,8 @@ const styles = StyleSheet.create({
   },
   messageBubble: {
     position: 'absolute',
-    top: -60,
+    right: 110,
+    top: -20,
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.md,
     padding: theme.spacing.sm,
@@ -524,16 +515,16 @@ const styles = StyleSheet.create({
   },
   bubbleTail: {
     position: 'absolute',
-    bottom: -8,
-    left: '50%',
-    marginLeft: -5,
+    right: -8,
+    top: '50%',
+    marginTop: -5,
     width: 0,
     height: 0,
-    borderLeftWidth: 5,
-    borderRightWidth: 5,
-    borderTopWidth: 8,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderTopColor: theme.colors.surface,
+    borderTopWidth: 5,
+    borderBottomWidth: 5,
+    borderLeftWidth: 8,
+    borderTopColor: 'transparent',
+    borderBottomColor: 'transparent',
+    borderLeftColor: theme.colors.surface,
   },
 });

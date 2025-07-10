@@ -385,7 +385,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
+    paddingTop: theme.spacing.xxl,
+    paddingBottom: theme.spacing.md,
     backgroundColor: theme.colors.background,
   },
   headerTitle: {
@@ -448,7 +449,7 @@ const styles = StyleSheet.create({
   floatingButton: {
     position: 'absolute',
     right: theme.spacing.lg,
-    bottom: theme.spacing.xl + 60, // Above tab bar
+    bottom: theme.spacing.xl + 80, // Lower position above tab bar
     width: 56,
     height: 56,
     borderRadius: 28,

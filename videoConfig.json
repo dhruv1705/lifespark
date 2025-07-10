@@ -1,0 +1,392 @@
+{   
+    //Physical Health
+    //Loose weight
+    "5-min Morning Stretch": {
+      "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/physical%20health/morningstretch.mp4",
+      "thumbnailUrl": "https://img.youtube.com/vi/qQW8msiv7u4/maxresdefault.jpg",
+      "duration": "9:10",
+      "title": "5 Minute Morning Stretch Routine"
+    },
+    "Healthy Breakfast": {
+      "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/physical%20health/Healthy%20Breakfast.mp4",
+      "thumbnailUrl": "https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
+      "duration": "8:46",
+      "title": "Quick Healthy Breakfast Ideas"
+    },
+    "Track Water Intake": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/physical%20health/Track%20Water%20Intake.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "11:19",
+        "title": "Track Water Intake"
+    },
+    "20 min Morning Run": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/physical%20health/20%20min%20morning%20run.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "5:23",
+        "title": "20 Minute Morning Run"
+    },
+    "Meal Prep": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/physical%20health/Meal%20Prep.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "18:09",
+        "title": "Meal Prep"
+    },
+    //Build Muscle
+    "10 Push-ups":{
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/physical%20health/10%20Push-ups.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "0:23",
+        "title": "10 Push-ups"
+    },
+    "10 Squats": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/physical%20health/10%20Squats.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "2:41",
+        "title": "10 Squats"
+    },
+    "5-min Plank Hold": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/physical%20health/5-min%20Plank%20Hold.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "2:18",
+        "title": "5-Minute Plank Hold"
+    },
+    "20 Push-ups + 20 Squats": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/physical%20health/20%20Push-ups%20%2B%2020%20Squats.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "16:49",
+        "title": "20 Push-ups + 20 Squats"
+    },
+    "Gym Session (3x/week)":{
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/physical%20health/Gym%20Session%20(3x%3Aweek).mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "21:02",
+        "title": "Gym Session (3x/week)"
+    },
+    "Progressive Overload": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/physical%20health/Progressive%20Overload.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "4:50",
+        "title": "Progressive Overload"
+    },
+    "Full Body Circuit": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/physical%20health/Full%20Body%20Circuit.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "7:10",
+        "title": "Full Body Circuit"
+    },
+    "Advance Compound Lifts": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/physical%20health/Advance%20Compound%20Lifts.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "13:00",
+        "title": "Advance Compound Lifts"
+    },
+    //Improve Cardio
+    "5-min Walk": {
+        "videoUrl":"https://storage.googleapis.com/lifesparkbucket/lifespark/physical%20health/5-min%20Walk.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "1:24",
+        "title": "5-Minute Walk"
+    },
+    "Climb 2 Flights of Stairs": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/physical%20health/Climb%202%20Flights%20of%20Stairs.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "4:29",
+        "title": "Climb 2 Flights of Stairs"
+    },
+    "10-min Dance/Movement": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/physical%20health/10-min%20Dance%3AMovement.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "10:48",
+        "title": "10-Minute Dance/Movement"
+    },
+    "15-min Brisk Walk": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/physical%20health/15-min%20Brisk%20Walk.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "16:31",
+        "title": "15-Minute Brisk Walk"
+    },
+    "20-min Bike Ride": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/physical%20health/20-min%20Bike%20Ride.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "20:39",
+        "title": "20-Minute Bike Ride"
+    },
+    "30-min Cardio Session": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/physical%20health/30-min%20Cardio%20Session.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "35:47",
+        "title": "30-Minute Cardio Session"
+    },
+    "45-min Mixed Cardio": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/physical%20health/45-min%20Mixed%20Cardio.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "51:35",
+        "title": "45-Minute Mixed Cardio"
+    },
+    "60-min Endurance Training": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/physical%20health/60-min%20Endurance%20Training.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "1:00:10",
+        "title": "60-Minute Endurance Training"
+    },
+    //Mental Health
+    //Reduce Stress & Anxiety
+    "2-Minute Breathing Exercise": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Mental%20Health/2-Minute%20Breathing%20Exercise.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "1:52",
+        "title": "2-Minute Breathing Exercise"
+    },
+    "Progressive Muscle Relaxation": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Mental%20Health/Progressive%20Muscle%20Relaxation.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "19:58",
+        "title": "Progressive Muscle Relaxation"
+    },
+    "Stress Relief Journaling": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Mental%20Health/Stress%20Relief%20Journaling.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "1:58",
+        "title": "Stress Relief Journaling"
+    },
+    "Deep Breathing Mastery": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Mental%20Health/Deep%20Breathing%20Mastery.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "5:59",
+        "title": "Deep Breathing Mastery"
+    },
+    "Anxiety Management Toolkit": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Mental%20Health/Anxiety%20Management%20Toolkit.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "32:29",
+        "title": "Anxiety Management Toolkit"
+    },
+    //Improve Mood & Emotional Regulation
+    "Evening Reflection": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Mental%20Health/Evening%20Reflection.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "10:01",
+        "title": "Evening Reflection"
+    },
+    "Daily Gratitude Practice": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Mental%20Health/Daily%20Gratitude%20Practice.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "9:19",
+        "title": "Daily Gratitude Practice"
+    },
+    "Mood Check-in": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Mental%20Health/Mood%20Check-in.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "10:08",
+        "title": "Mood Check-in"
+    },
+    "Emotional Regulation Practices": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Mental%20Health/Emotional%20Regulation%20Practices.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "6:46",
+        "title": "Emotional Regulation Practices"
+    },
+    "Emotional Mastery Practices": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Mental%20Health/Emotional%20Mastery%20Practices.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "16:28",
+        "title": "Emotional Mastery Practices"
+    },
+    //Build Mindfulness & Presence
+    "Mindful Morning Moment": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Mental%20Health/Mindful%20Morning%20Moment.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "10:06",
+        "title": "Mindful Morning Moment"
+    },
+    "Mindful Walking": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Mental%20Health/Mindful%20Walking.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "15:31",
+        "title": "Mindful Walking"
+    },
+    "5-Minute Meditation": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Mental%20Health/5-Minute%20Meditation.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "5:34",
+        "title": "5-Minute Meditation"
+    },
+    "Mindfulness Body Scan": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Mental%20Health/Mindfulness%20Body%20Scan.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "5:38",
+        "title": "Mindfulness Body Scan"
+    },
+    "10-Minute Focused Meditation": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Mental%20Health/10-Minute%20Focused%20Meditation.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "10:17",
+        "title": "10-Minute Focused Meditation"
+    },
+    "Mindful Life Integration": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Mental%20Health/Mindful%20Life%20Integration.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "3:24",
+        "title": "Mindful Life Integration"
+    },
+    "15-Minute Zen Meditation": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Mental%20Health/15-Minute%20Zen%20Meditation.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "15:21",
+        "title": "15-Minute Zen Meditation"
+    },
+    //Enhance Sleep Quality
+    "Evening Wind-Down": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Mental%20Health/Evening%20Wind-Down.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "10:10",
+        "title": "Evening Wind-Down"
+    },
+    "Bedtime Relaxation Routine": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Mental%20Health/Bedtime%20Relaxation%20Routine.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "5:27",
+        "title": "Bedtime Relaxation Routine"
+    },
+    "Sleep Hygine Mastery": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Mental%20Health/Sleep%20Hygine%20Mastery.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "10:12",
+        "title": "Sleep Hygiene Mastery"
+    },
+    "Complete Wellness Routine": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Mental%20Health/Complete%20Wellness%20Routine.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "9:56",
+        "title": "Complete Wellness Routine"
+    },
+    //Boost Confidence & Self-Esteem
+    "Positive Affirmations": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Mental%20Health/Positive%20Affirmations.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "11:06",
+        "title": "Positive Affirmations"
+    },
+    "Self-Compassion Practice": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Mental%20Health/Self-Compassion%20Practice.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "5:52",
+        "title": "Self-Compassion Practice"
+    },
+    "Visualization Exercise": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Mental%20Health/Visualization%20Exercise.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "10:40",
+        "title": "Visualization Exercise"
+    },
+    "Advance Visualization": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Mental%20Health/Advance%20Visualization.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "8:13",
+        "title": "Advance Visualization"
+    },
+    //Finance
+    //Reduce Debt and Improve Credit
+    "Credit Optimization Strategy": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Finance/Credit%20Optimization%20Strategy.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "2:46",
+        "title": "Credit Optimization Strategy"
+    },
+    "Debt Freedom Strategy": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Finance/Debt%20Freedom%20Strategy.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "10:45",
+        "title": "Debt Freedom Strategy"
+    },
+    //Start Investing and Wealth Building
+    "Learn Investment Basics": {
+        "videoUrl":"https://storage.googleapis.com/lifesparkbucket/lifespark/Finance/Learn%20Investment%20Basics.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "15:32",
+        "title": "Learn Investment Basics"
+    },
+    "Monthly Investment":{
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Finance/Monthly%20Investment.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "16:13",
+        "title": "Monthly Investment"
+    },
+    "Investment Research":{
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Finance/Investment%20Research.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "14:15",
+        "title": "Investment Research"
+    },
+    "Portfolio Diversification": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Finance/Portfolio%20Diversification.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "1:56",
+        "title": "Portfolio Diversification"
+    },
+    "Wealth Building Mindset": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Finance/Wealth%20Building%20Mindset.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "6:29",
+        "title": "Wealth Building Mindset"
+    },
+    "Advance Investment Strategies": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Finance/Advance%20Investment%20Strategies.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "10:22",
+        "title": "Advance Investment Strategies"
+    },
+    //Master Personal Finance
+    "Tax Strategy Planning": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Finance/Tax%20Strategy%20Planning.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "30:36",
+        "title": "Tax Strategy Planning"
+    },
+    "Financial Planning Mastery": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Finance/Financial%20Planning%20Mastery.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "30:56",
+        "title": "Financial Planning Mastery"
+    },
+    //Social Goals
+    //Expand Social Network
+    "Social Media Engagement": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Social%20Goals/Social%20Media%20Engagement%20.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "17:41",
+        "title": "Social Media Engagement"
+    },
+    "Cross-Cultural Connections": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Social%20Goals/Cross-Cultural%20Connections.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "4:08",
+        "title": "Cross-Cultural Connections"
+    },
+    "Network Building": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Social%20Goals/Network%20Building.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "7:53",
+        "title": "Network Building"
+    },
+    "Community Building": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Social%20Goals/Community%20Building.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "15:07",
+        "title": "Community Building"
+    },
+    "Advance Networking": {
+        "videoUrl": "https://storage.googleapis.com/lifesparkbucket/lifespark/Social%20Goals/advance%20networking.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "4:03",
+        "title": "Advance Networking"
+    },
+    //Sleep and Recovery Goals
+    //Mastery Recovery Techniques
+    "Recovery Breathing":{
+        "videoUrl":"https://storage.googleapis.com/lifesparkbucket/lifespark/Sleep%20and%20Recovery%20Goals/recovery%20breathing.mp4",
+        "thumbnailUrl": "https://img.youtube.com/vi/3JZ_D3ELwOQ/maxresdefault.jpg",
+        "duration": "11:00",
+        "title": "Recovery Breathing"
+    }
+  }

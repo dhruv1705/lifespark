@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.lg,
-    maxWidth: '80%',
+    width: '90%',
     maxHeight: '60%',
     ...theme.shadows.lg,
   },
@@ -139,6 +139,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
     borderWidth: 1,
     borderColor: theme.colors.border,
+    minWidth: 200,
   },
   selectedGoalItem: {
     backgroundColor: theme.colors.primary.green,

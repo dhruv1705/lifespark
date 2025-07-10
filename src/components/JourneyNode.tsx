@@ -1,5 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import CircularProgress from 'react-native-circular-progress-indicator';
+import LottieView from 'lottie-react-native';
 import { theme } from '../theme';
 
 export type NodeStatus = 'current' | 'completed' | 'locked' | 'bonus';
@@ -9,7 +11,7 @@ interface JourneyNodeProps {
   title: string;
   emoji: string;
   status: NodeStatus;
-  progress?: number; // 0-100 for current nodes
+  progress?: number; 
   onPress: () => void;
   position: 'left' | 'right' | 'center';
 }
@@ -45,11 +47,11 @@ export const JourneyNode: React.FC<JourneyNodeProps> = ({
       case 'completed':
         return theme.colors.text.primary;
       case 'locked':
-        return theme.colors.text.disabled;
+        return theme.colors.text.secondary;
       case 'bonus':
         return theme.colors.text.primary;
       default:
-        return theme.colors.text.disabled;
+        return theme.colors.text.secondary;
     }
   };
 
@@ -68,47 +70,91 @@ export const JourneyNode: React.FC<JourneyNodeProps> = ({
     }
   };
 
-  const renderProgressIndicator = () => {
-    if (status === 'current' && progress > 0) {
-      return (
-        <View style={styles.progressContainer}>
-          <View style={[styles.progressBar, { width: `${progress}%` }]} />
-        </View>
-      );
+  const getProgressColors = () => {
+    switch (status) {
+      case 'current':
+        return {
+          active: '#4CAF50', 
+          inactive: '#E8F5E8',
+        };
+      case 'completed':
+        return {
+          active: '#2196F3', 
+          inactive: '#E3F2FD', 
+        };
+      case 'locked':
+        return {
+          active: '#9E9E9E',
+          inactive: '#F5F5F5', 
+        };
+      case 'bonus':
+        return {
+          active: '#FF9800', 
+          inactive: '#FFF3E0', 
+        };
+      default:
+        return {
+          active: '#9E9E9E',
+          inactive: '#F5F5F5',
+        };
     }
-    return null;
-  };
-
-  const renderStars = () => {
-    if (status === 'completed') {
-      return (
-        <View style={styles.starsContainer}>
-          <Text style={styles.star}>⭐</Text>
-          <Text style={styles.star}>⭐</Text>
-          <Text style={styles.star}>⭐</Text>
-        </View>
-      );
-    }
-    return null;
   };
 
   return (
     <View style={[styles.container, styles[`${position}Container`]]}>
-      <TouchableOpacity
-        style={[getNodeStyle(), { opacity: getNodeOpacity() }]}
-        onPress={onPress}
-        disabled={false}
-        activeOpacity={0.7}
-      >
-        <Text style={styles.emoji}>{emoji}</Text>
-        {renderProgressIndicator()}
-        {renderStars()}
-      </TouchableOpacity>
-      
-      <View style={[styles.labelContainer, styles[`${position}Label`]]}>
-        <Text style={[styles.nodeTitle, { color: getTextColor() }]} numberOfLines={2}>
-          {title}
-        </Text>
+      <View style={styles.nodeWrapper}>
+        <TouchableOpacity
+          style={[getNodeStyle(), { opacity: getNodeOpacity() }]}
+          onPress={onPress}
+          disabled={false}
+          activeOpacity={0.7}
+        >
+          <CircularProgress
+            value={progress}
+            radius={37}
+            duration={500}
+            activeStrokeColor={getProgressColors().active}
+            inActiveStrokeColor={getProgressColors().inactive}
+            inActiveStrokeOpacity={1}
+            activeStrokeWidth={6}
+            inActiveStrokeWidth={6}
+            maxValue={100}
+            titleStyle={{fontWeight: 'bold', fontSize: 28}}
+            titleColor={theme.colors.text.primary}
+            progressValueColor={'transparent'}
+            valueSuffix={''}
+            delay={0}
+            subtitle={''}
+            showProgressValue={false}
+            title={title === '5-min Morning Stretch' ? '' : emoji}
+            circleBackgroundColor={'#FFFFFF'}
+            onAnimationComplete={() => {}}
+          />
+          
+          {/* Show Lottie animation for 5-min Morning Stretch */}
+          {title === '5-min Morning Stretch' && (
+            <View style={styles.lottieContainer}>
+              <LottieView
+                source={require('../../animations/jumping_jack.json')}
+                autoPlay
+                loop
+                style={styles.lottieAnimation}
+              />
+            </View>
+          )}
+          
+          {status === 'completed' && (
+            <View style={styles.starsContainer}>
+              <Text style={styles.star}>⭐</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+        
+        <View style={styles.labelContainer}>
+          <Text style={[styles.nodeTitle, { color: getTextColor() }]} numberOfLines={2}>
+            {title}
+          </Text>
+        </View>
       </View>
     </View>
   );
@@ -117,20 +163,21 @@ export const JourneyNode: React.FC<JourneyNodeProps> = ({
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
-    marginVertical: theme.spacing.md,
   },
   leftContainer: {
-    flexDirection: 'row',
     alignSelf: 'flex-start',
     marginLeft: theme.spacing.xl,
   },
   rightContainer: {
-    flexDirection: 'row-reverse',
     alignSelf: 'flex-end',
     marginRight: theme.spacing.xl,
   },
   centerContainer: {
     alignSelf: 'center',
+  },
+  nodeWrapper: {
+    alignItems: 'center',
+    paddingBottom: 12, 
   },
   nodeBase: {
     width: 80,
@@ -139,52 +186,35 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
-    ...theme.shadows.md,
+    backgroundColor: 'transparent',
   },
   currentNode: {
-    backgroundColor: theme.colors.primary.blue,
-    borderWidth: 4,
-    borderColor: theme.colors.primary.green,
+    borderWidth: 0,
   },
   completedNode: {
-    backgroundColor: theme.colors.primary.green,
-    borderWidth: 2,
-    borderColor: theme.colors.primary.green,
+    borderWidth: 0,
   },
   lockedNode: {
-    backgroundColor: theme.colors.surface,
-    borderWidth: 2,
-    borderColor: theme.colors.border,
+    borderWidth: 0,
   },
   bonusNode: {
-    backgroundColor: theme.colors.secondary.purple,
-    borderWidth: 3,
-    borderColor: theme.colors.secondary.orange,
+    borderWidth: 0,
   },
   emoji: {
     fontSize: 32,
   },
-  progressContainer: {
-    position: 'absolute',
-    bottom: 5,
-    left: 10,
-    right: 10,
-    height: 3,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 1.5,
-  },
-  progressBar: {
-    height: '100%',
-    backgroundColor: theme.colors.text.inverse,
-    borderRadius: 1.5,
-  },
   starsContainer: {
     position: 'absolute',
-    bottom: -8,
+    bottom: -6,
+    alignSelf: 'center',
     flexDirection: 'row',
     backgroundColor: theme.colors.background,
     borderRadius: theme.borderRadius.lg,
     paddingHorizontal: theme.spacing.xs,
+    paddingVertical: 2,
+    minWidth: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   star: {
     fontSize: 12,
@@ -195,23 +225,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     minHeight: 40,
     justifyContent: 'center',
-  },
-  leftLabel: {
-    marginLeft: theme.spacing.md,
-    alignItems: 'flex-start',
-  },
-  rightLabel: {
-    marginRight: theme.spacing.md,
-    alignItems: 'flex-end',
-  },
-  centerLabel: {
-    alignItems: 'center',
+    marginTop: 4, 
+    paddingHorizontal: theme.spacing.xs, 
   },
   nodeTitle: {
     fontSize: theme.typography.sizes.md,
     fontWeight: theme.typography.weights.semibold,
     textAlign: 'center',
-    marginTop: theme.spacing.sm,
-    lineHeight: 20,
+    marginTop: 0, 
+    lineHeight: 18, 
+  },
+  lottieContainer: {
+    position: 'absolute',
+    top: 8,
+    left: '50%',
+    width: 64,
+    height: 64,
+    marginLeft: -32,
+    borderRadius: 32,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  lottieAnimation: {
+    width: 100,
+    height: 100,
   },
 });

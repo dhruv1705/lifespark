@@ -27,4 +27,5 @@ export const DATA_SYNC_EVENTS = {
   HABIT_TOGGLED: 'habit_toggled',
   XP_UPDATED: 'xp_updated',
   GOAL_PROGRESS_UPDATED: 'goal_progress_updated',
+  HABIT_PROGRESS_UPDATED: 'habit_progress_updated',
 } as const;
