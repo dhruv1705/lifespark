@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, StyleSheet, SafeAreaView, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { useFocusEffect } from '@react-navigation/native';
 import { CategoryCard } from '../components/CategoryCard';
 import { CompactToggle } from '../components/CompactToggle';
 import { JourneyView } from '../components/JourneyView';
@@ -26,16 +27,36 @@ export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({ navigation }
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [isJourneyView, setIsJourneyView] = useState(false);
+  const [hasUserInterests, setHasUserInterests] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
-    loadCategories();
     loadViewPreference();
   }, []);
 
+  useFocusEffect(
+    React.useCallback(() => {
+      loadCategories();
+    }, [user])
+  );
+
   const loadCategories = async () => {
     try {
-      const data = await DataService.getCategories();
+      let data: Category[];
+      
+      if (user?.id) {
+        // Check if user has interests set
+        const userHasInterests = await DataService.hasUserInterests(user.id);
+        setHasUserInterests(userHasInterests);
+        
+        // Load categories filtered by user interests
+        data = await DataService.getCategoriesByUserInterests(user.id);
+      } else {
+        // Fallback to all categories if no user
+        data = await DataService.getCategories();
+        setHasUserInterests(false);
+      }
+      
       setCategories(data);
     } catch (error) {
       console.error('Error loading categories:', error);
@@ -135,6 +156,14 @@ export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({ navigation }
         <View style={styles.header}>
           <Text style={styles.title}>Choose Your Life Area</Text>
           <Text style={styles.subtitle}>What would you like to improve today?</Text>
+          
+          {hasUserInterests && (
+            <View style={styles.interestsIndicator}>
+              <Text style={styles.interestsText}>
+                ❤️ Showing your interests
+              </Text>
+            </View>
+          )}
         </View>
       )}
       
@@ -188,5 +217,18 @@ const styles = StyleSheet.create({
   journeyToggle: {
     marginTop: theme.spacing.md,
     marginBottom: 0,
+  },
+  interestsIndicator: {
+    marginTop: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    backgroundColor: theme.colors.primary.green + '15',
+    borderRadius: theme.borderRadius.md,
+    alignSelf: 'center',
+  },
+  interestsText: {
+    fontSize: theme.typography.sizes.sm,
+    color: theme.colors.primary.green,
+    fontWeight: theme.typography.weights.medium,
   },
 });

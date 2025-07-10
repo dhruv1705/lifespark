@@ -124,52 +124,36 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onToggle }) => {
             <View style={[styles.levelBadge, { backgroundColor: getLevelColor(habit.level) }]}>
               <Text style={styles.levelText}>{getLevelLabel(habit.level)}</Text>
             </View>
-            {currentReminder?.enabled && (
-              <Text style={styles.reminderTime}>
-                {(() => {
-                  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-                  const formattedTime = reminderStorage.formatTimeForDisplay(currentReminder.time);
-                  
-                  switch (currentReminder.reminderType) {
-                    case 'daily':
-                      return `Daily ${formattedTime}`;
-                    case 'weekly':
-                      return `${dayNames[currentReminder.dayOfWeek!]} ${formattedTime}`;
-                    case 'monthly':
-                      const suffix = currentReminder.dayOfMonth === 1 ? 'st' : currentReminder.dayOfMonth === 2 ? 'nd' : currentReminder.dayOfMonth === 3 ? 'rd' : 'th';
-                      return `Monthly ${currentReminder.dayOfMonth}${suffix} ${formattedTime}`;
-                    case 'once':
-                      return currentReminder.specificDate 
-                        ? `${new Date(currentReminder.specificDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} ${formattedTime}`
-                        : formattedTime;
-                    default:
-                      return formattedTime;
-                  }
-                })()}
-              </Text>
-            )}
+            <Text style={styles.reminderTime}>
+              {currentReminder?.enabled ? (() => {
+                const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                const formattedTime = reminderStorage.formatTimeForDisplay(currentReminder.time);
+                
+                switch (currentReminder.reminderType) {
+                  case 'daily':
+                    return `Daily ${formattedTime}`;
+                  case 'weekly':
+                    return `${dayNames[currentReminder.dayOfWeek!]} ${formattedTime}`;
+                  case 'monthly':
+                    const suffix = currentReminder.dayOfMonth === 1 ? 'st' : currentReminder.dayOfMonth === 2 ? 'nd' : currentReminder.dayOfMonth === 3 ? 'rd' : 'th';
+                    return `Monthly ${currentReminder.dayOfMonth}${suffix} ${formattedTime}`;
+                  case 'once':
+                    return currentReminder.specificDate 
+                      ? `${new Date(currentReminder.specificDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} ${formattedTime}`
+                      : formattedTime;
+                  default:
+                    return formattedTime;
+                }
+              })() : 'One time'}
+            </Text>
           </View>
         </View>
         <View style={styles.rightHeader}>
           <Text style={styles.xp}>+{habit.xp} XP</Text>
           <View style={styles.actionButtons}>
-            {hasVideoContent && (
-              <TouchableOpacity 
-                style={styles.videoButton}
-                onPress={handleVideoPress}
-              >
-                <Text style={styles.videoIcon}>📹</Text>
-              </TouchableOpacity>
-            )}
-            {isInteractive ? (
-              <View style={styles.playButton}>
-                <Text style={styles.playIcon}>▶️</Text>
-              </View>
-            ) : (
-              <View style={[styles.checkbox, habit.completed && styles.checkedBox]}>
-                {habit.completed && <Text style={styles.checkmark}>✓</Text>}
-              </View>
-            )}
+            <View style={[styles.checkbox, habit.completed && styles.checkedBox]}>
+              {habit.completed && <Text style={styles.checkmark}>✓</Text>}
+            </View>
           </View>
         </View>
       </View>
@@ -287,32 +271,9 @@ const styles = StyleSheet.create({
     borderLeftColor: theme.colors.primary.green,
     backgroundColor: '#f8fff8',
   },
-  playButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: theme.colors.primary.green,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  playIcon: {
-    fontSize: 12,
-    marginLeft: 2, // Slight adjustment for visual centering
-  },
   actionButtons: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: theme.spacing.sm,
-  },
-  videoButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: theme.colors.secondary.orange,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  videoIcon: {
-    fontSize: 14,
   },
 });

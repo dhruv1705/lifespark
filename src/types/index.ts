@@ -45,6 +45,11 @@ export type RootStackParamList = {
   VideoPlayer: { videoUrl: string; title?: string; habitId?: string; habitXp?: number };
 };
 
+export type ProfileStackParamList = {
+  Profile: undefined;
+  Interests: undefined;
+};
+
 export type BottomTabParamList = {
   HomeTab: undefined;
   ProgressTab: undefined;
