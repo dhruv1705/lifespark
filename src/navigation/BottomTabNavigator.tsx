@@ -10,11 +10,13 @@ import { VideoPlayerScreen } from '../screens/VideoPlayerScreen';
 import { ProgressScreen } from '../screens/ProgressScreen';
 import { ScheduleScreen } from '../screens/ScheduleScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
-import { BottomTabParamList, RootStackParamList } from '../types';
+import InterestsScreen from '../screens/InterestsScreen';
+import { BottomTabParamList, RootStackParamList, ProfileStackParamList } from '../types';
 import { theme } from '../theme';
 
 const Tab = createBottomTabNavigator<BottomTabParamList>();
 const HomeStack = createStackNavigator<RootStackParamList>();
+const ProfileStack = createStackNavigator<ProfileStackParamList>();
 
 const HomeStackNavigator = () => {
   return (
@@ -56,6 +58,38 @@ const HomeStackNavigator = () => {
         }}
       />
     </HomeStack.Navigator>
+  );
+};
+
+const ProfileStackNavigator = () => {
+  return (
+    <ProfileStack.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: theme.colors.background,
+          elevation: 0,
+          shadowOpacity: 0,
+        },
+        headerTitleStyle: {
+          fontWeight: theme.typography.weights.bold,
+          fontSize: theme.typography.sizes.xl,
+        },
+        headerTintColor: theme.colors.text.primary,
+      }}
+    >
+      <ProfileStack.Screen 
+        name="Profile" 
+        component={ProfileScreen}
+        options={{ title: 'Profile' }}
+      />
+      <ProfileStack.Screen 
+        name="Interests" 
+        component={InterestsScreen}
+        options={{ 
+          headerShown: false,
+        }}
+      />
+    </ProfileStack.Navigator>
   );
 };
 
@@ -135,21 +169,10 @@ export const BottomTabNavigator = () => {
       />
       <Tab.Screen 
         name="ProfileTab" 
-        component={ProfileScreen}
+        component={ProfileStackNavigator}
         options={{
           title: 'Profile',
-          headerShown: true,
-          headerStyle: {
-            backgroundColor: theme.colors.background,
-            elevation: 0,
-            shadowOpacity: 0,
-          },
-          headerTitleStyle: {
-            fontWeight: theme.typography.weights.bold,
-            fontSize: theme.typography.sizes.xl,
-          },
-          headerTintColor: theme.colors.text.primary,
-          headerTitle: 'Profile',
+          headerShown: false,
         }}
       />
     </Tab.Navigator>
