@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Vibration } from 'react-native';
 import CircularProgress from 'react-native-circular-progress-indicator';
 import LottieView from 'lottie-react-native';
 import { theme } from '../theme';
+import { getAnimationByTitle, hasAnimation } from '../data/animationMappings';
 
 export type NodeStatus = 'current' | 'completed' | 'locked' | 'bonus';
 
@@ -100,12 +101,17 @@ export const JourneyNode: React.FC<JourneyNodeProps> = ({
     }
   };
 
+  const handlePress = () => {
+    Vibration.vibrate(350); 
+    onPress();
+  };
+
   return (
     <View style={[styles.container, styles[`${position}Container`]]}>
       <View style={styles.nodeWrapper}>
         <TouchableOpacity
           style={[getNodeStyle(), { opacity: getNodeOpacity() }]}
-          onPress={onPress}
+          onPress={handlePress}
           disabled={false}
           activeOpacity={0.7}
         >
@@ -126,16 +132,16 @@ export const JourneyNode: React.FC<JourneyNodeProps> = ({
             delay={0}
             subtitle={''}
             showProgressValue={false}
-            title={title === '5-min Morning Stretch' ? '' : emoji}
+            title={hasAnimation(title) ? '' : emoji}
             circleBackgroundColor={'#FFFFFF'}
             onAnimationComplete={() => {}}
           />
           
-          {/* Show Lottie animation for 5-min Morning Stretch */}
-          {title === '5-min Morning Stretch' && (
+          {/* Show Lottie animation for mapped titles */}
+          {hasAnimation(title) && (
             <View style={styles.lottieContainer}>
               <LottieView
-                source={require('../../animations/jumping_jack.json')}
+                source={getAnimationByTitle(title)}
                 autoPlay
                 loop
                 style={styles.lottieAnimation}
@@ -186,7 +192,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
-    backgroundColor: 'transparent',
+    backgroundColor: '#FFFFFF',
   },
   currentNode: {
     borderWidth: 0,

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { RouteProp } from '@react-navigation/native';
+import { RouteProp, useNavigation } from '@react-navigation/native';
 import { HabitCard } from '../components/HabitCard';
 import { DataService } from '../services/dataService';
 import { useAuth } from '../context/AuthContext';
@@ -10,6 +10,7 @@ import { Database } from '../lib/database.types';
 import { theme } from '../theme';
 import { dataSync, DATA_SYNC_EVENTS } from '../utils/dataSync';
 import { getInteractiveHabitData } from '../data/interactiveHabits';
+import { StreakService } from '../services/streakService';
 
 type HabitsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Habits'>;
 type HabitsScreenRouteProp = RouteProp<RootStackParamList, 'Habits'>;
@@ -35,6 +36,7 @@ const transformHabit = (dbHabit: DbHabit, completed: boolean = false): Habit => 
 export const HabitsScreen: React.FC<HabitsScreenProps> = ({ navigation, route }) => {
   const { goalId } = route.params;
   const { user } = useAuth();
+  const nav = useNavigation<StackNavigationProp<RootStackParamList>>();
   const [goal, setGoal] = useState<Goal | null>(null);
   const [habitsList, setHabitsList] = useState<Habit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -139,6 +141,19 @@ export const HabitsScreen: React.FC<HabitsScreenProps> = ({ navigation, route })
       });
       
       console.log('🔄 Habit toggle event emitted:', { habitId, completed: wasCompleted, xp: habit.xp });
+      
+      // Navigate to TaskCompleted screen if habit was completed
+      if (wasCompleted) {
+        // Record streak and check if it's first task of the day
+        const streakData = await StreakService.recordTaskCompletion(user.id, habitId);
+        
+        nav.navigate('TaskCompleted', {
+          taskTitle: habit.name,
+          xpEarned: habit.xp,
+          streakDay: streakData.streakDay,
+          isFirstTaskOfDay: streakData.isFirstTaskOfDay,
+        });
+      }
       
     } catch (error) {
       console.error('Error toggling habit:', error);

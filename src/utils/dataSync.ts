@@ -1,4 +1,3 @@
-// Simple event emitter for cross-screen data synchronization
 class DataSyncEmitter {
   private listeners: Record<string, Function[]> = {};
 
@@ -22,7 +21,6 @@ class DataSyncEmitter {
 
 export const dataSync = new DataSyncEmitter();
 
-// Event types
 export const DATA_SYNC_EVENTS = {
   HABIT_TOGGLED: 'habit_toggled',
   XP_UPDATED: 'xp_updated',

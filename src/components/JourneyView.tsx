@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, ScrollView, StyleSheet, Text, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 import { JourneyNode, NodeStatus } from './JourneyNode';
 import { PathConnector } from './PathConnector';
 import { CategoryDropdownHeader } from './CategoryDropdownHeader';
@@ -16,6 +17,7 @@ import { Database } from '../lib/database.types';
 import { useAuth } from '../context/AuthContext';
 import { dataSync, DATA_SYNC_EVENTS } from '../utils/dataSync';
 import { RootStackParamList } from '../types';
+import { StreakService } from '../services/streakService';
 
 type Category = Database['public']['Tables']['categories']['Row'];
 type Goal = Database['public']['Tables']['goals']['Row'];
@@ -132,6 +134,14 @@ export const JourneyView: React.FC<JourneyViewProps> = ({ categories, isJourneyV
       loadJourneyData(selectedCategory.id);
     }
   }, [selectedCategory, filters, selectedGoal]);
+  useFocusEffect(
+    useCallback(() => {
+      console.log('🔄 Journey view focused - refreshing data');
+      if (selectedCategory) {
+        loadJourneyData(selectedCategory.id);
+      }
+    }, [selectedCategory, filters, selectedGoal])
+  );
 
   const getUserCompletions = async (timeFilter: 'daily' | 'weekly' | 'monthly') => {
     try {
@@ -201,7 +211,7 @@ export const JourneyView: React.FC<JourneyViewProps> = ({ categories, isJourneyV
           } else if (filters.statusFilter === 'pending') {
             return !isCompleted;
           } else {
-            return true; // 'all' - show all habits
+            return true; 
           }
         });
         
@@ -249,18 +259,33 @@ export const JourneyView: React.FC<JourneyViewProps> = ({ categories, isJourneyV
               status = 'completed';
               progress = 100;
               console.log(`✅ Journey: Setting habit ${habit.id} as completed with 100% progress`);
-            } else if (habitIndex === 0 && !isCompleted) {
-              status = 'current';
-              progress = 0; 
-              console.log(`🔄 Journey: Setting habit ${habit.id} as current with 0% progress`);
-            } else if (habitIndex === filteredHabits.length - 1) {
-              status = 'bonus';
-              progress = 0;
-              console.log(`🎁 Journey: Setting habit ${habit.id} as bonus with 0% progress`);
             } else {
-              status = 'locked';
-              progress = 0;
-              console.log(`🔒 Journey: Setting habit ${habit.id} as locked with 0% progress`);
+              let firstUncompletedIndex = -1;
+              for (let i = 0; i < filteredHabits.length; i++) {
+                const completionExists = completions.some(c => c.habit_id === filteredHabits[i].id);
+                if (!completionExists) {
+                  firstUncompletedIndex = i;
+                  break;
+                }
+              }
+              
+              if (habitIndex === firstUncompletedIndex) {
+                status = 'current';
+                progress = 0;
+                console.log(`🔄 Journey: Setting habit ${habit.id} as current with 0% progress`);
+              } else if (habitIndex === 0 && firstUncompletedIndex === -1) {
+                status = 'current';
+                progress = 0;
+                console.log(`🔄 Journey: Setting habit ${habit.id} as current with 0% progress`);
+              } else if (habitIndex === filteredHabits.length - 1) {
+                status = 'bonus';
+                progress = 0;
+                console.log(`🎁 Journey: Setting habit ${habit.id} as bonus with 0% progress`);
+              } else {
+                status = 'locked';
+                progress = 0;
+                console.log(`🔒 Journey: Setting habit ${habit.id} as locked with 0% progress`);
+              }
             }
 
             transformedData.push({
@@ -295,7 +320,7 @@ export const JourneyView: React.FC<JourneyViewProps> = ({ categories, isJourneyV
   };
 
 
-  const handleNodePress = (item: JourneyData) => {
+  const handleNodePress = async (item: JourneyData) => {
     if (item.habit && !item.isGoalHeader) {
       const hasVideoContent = hasVideo(item.habit.name);
       const videoConfig = getVideoConfig(item.habit.name);
@@ -308,7 +333,34 @@ export const JourneyView: React.FC<JourneyViewProps> = ({ categories, isJourneyV
           habitXp: item.habit.xp
         });
       } else {
-        onHabitToggle(item.habit);
+        if (user && item.habit) {
+          try {
+            const wasCompleted = await DataService.toggleHabitCompletion(user.id, item.habit.id, item.habit.xp);
+            
+            if (wasCompleted) {
+              const streakData = await StreakService.recordTaskCompletion(user.id, item.habit.id);
+              dataSync.emit(DATA_SYNC_EVENTS.HABIT_TOGGLED, {
+                habitId: item.habit.id,
+                completed: true,
+                xp: item.habit.xp,
+                userId: user.id
+              });
+
+              navigation.navigate('TaskCompleted', {
+                taskTitle: item.habit.name,
+                xpEarned: item.habit.xp,
+                streakDay: streakData.streakDay,
+                isFirstTaskOfDay: streakData.isFirstTaskOfDay,
+              });
+            }
+            onHabitToggle(item.habit);
+          } catch (error) {
+            console.error('Error toggling habit completion:', error);
+            onHabitToggle(item.habit);
+          }
+        } else {
+          onHabitToggle(item.habit);
+        }
       }
     }
   };

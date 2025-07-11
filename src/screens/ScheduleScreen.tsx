@@ -21,8 +21,6 @@ import { AddScheduleModal } from '../components/AddScheduleModal';
 import { scheduleService } from '../services/scheduleService';
 
 const { width } = Dimensions.get('window');
-
-// Demo data matching the reference
 const DEMO_TASKS: ScheduledTask[] = [
   {
     id: '1',
@@ -42,8 +40,6 @@ export const ScheduleScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Debounced sync function to prevent excessive AsyncStorage writes
   const debouncedSync = useCallback(async () => {
     if (syncTimeoutRef.current) {
       clearTimeout(syncTimeoutRef.current);
@@ -58,16 +54,13 @@ export const ScheduleScreen: React.FC = () => {
           console.error('Error syncing reminders:', error);
           resolve();
         }
-      }, 300); // 300ms debounce
+      }, 300); 
     });
   }, []);
 
-  // Optimized task loading function
   const loadTasks = useCallback(async (shouldSync: boolean = false) => {
     try {
       setLoading(true);
-      
-      // Only sync when necessary (on focus or explicit request)
       if (shouldSync) {
         await debouncedSync();
       }
@@ -80,7 +73,6 @@ export const ScheduleScreen: React.FC = () => {
         const { startOfWeek, endOfWeek } = getWeekRange(selectedDate);
         tasksToShow = await scheduleService.getTasksForDateRange(startOfWeek, endOfWeek);
       } else {
-        // For month view, get tasks for the whole month
         const startOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
         const endOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0);
         tasksToShow = await scheduleService.getTasksForDateRange(startOfMonth, endOfMonth);
@@ -89,37 +81,31 @@ export const ScheduleScreen: React.FC = () => {
       setTasks(tasksToShow);
     } catch (error) {
       console.error('Error loading tasks:', error);
-      // Fallback to demo data on error
       setTasks(DEMO_TASKS);
     } finally {
       setLoading(false);
     }
   }, [viewType, selectedDate, debouncedSync]);
 
-  // Load tasks on component mount and when date/view changes (without sync)
   useEffect(() => {
     loadTasks(false);
   }, [loadTasks]);
 
-  // Refresh tasks when screen comes into focus (with sync for reminder updates)
   useFocusEffect(
     useCallback(() => {
-      // Force sync when screen comes into focus to ensure reminders are up to date
       loadTasks(true);
     }, [loadTasks])
   );
 
   const handleRefresh = async () => {
-    // Manual refresh function
     try {
       setLoading(true);
-      await loadTasks(true); // Force sync
+      await loadTasks(true); 
     } catch (error) {
       console.error('Error refreshing schedule:', error);
     }
   };
 
-  // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
       if (syncTimeoutRef.current) {
@@ -128,11 +114,10 @@ export const ScheduleScreen: React.FC = () => {
     };
   }, []);
 
-  // Get current week date range
   const getWeekRange = (date: Date) => {
     const startOfWeek = new Date(date);
     const dayOfWeek = startOfWeek.getDay();
-    const diff = startOfWeek.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // Monday as start
+    const diff = startOfWeek.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); 
     startOfWeek.setDate(diff);
     
     const endOfWeek = new Date(startOfWeek);
@@ -230,10 +215,8 @@ export const ScheduleScreen: React.FC = () => {
   };
 
   const handleTaskAdded = async (newTask: ScheduledTask) => {
-    // Add the new task to the local state immediately for responsiveness
     setTasks(prev => [...prev, newTask]);
-    
-    // Also reload tasks to ensure consistency with storage
+
     try {
       await loadTasks(false);
     } catch (error) {
@@ -444,12 +427,12 @@ const styles = StyleSheet.create({
   },
   taskList: {
     marginTop: theme.spacing.lg,
-    paddingBottom: 100, // Space for floating button
+    paddingBottom: 100, 
   },
   floatingButton: {
     position: 'absolute',
     right: theme.spacing.lg,
-    bottom: theme.spacing.xl + 80, // Lower position above tab bar
+    bottom: theme.spacing.xl + 80, 
     width: 56,
     height: 56,
     borderRadius: 28,

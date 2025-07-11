@@ -37,8 +37,7 @@ export const ProgressScreen: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const previousStreak = useRef<number>(0);
   const previousLevel = useRef<number>(0);
-  
-  // Animation values for the entire screen
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
 
@@ -48,29 +47,25 @@ export const ProgressScreen: React.FC = () => {
     }
   }, [user]);
 
-  // Listen for data sync events from other screens
   useEffect(() => {
     const handleHabitToggled = (data: any) => {
       console.log('🔄 Progress screen received habit toggle event:', data);
-      // Refresh stats when a habit is toggled
       if (user) {
-        loadUserStats(true); // Refresh mode
+        loadUserStats(true); 
       }
     };
 
     const handleXPUpdated = (data: any) => {
       console.log('🔄 Progress screen received XP update event:', data);
-      // Refresh stats when XP is updated
       if (user) {
-        loadUserStats(true); // Refresh mode
+        loadUserStats(true); 
       }
     };
 
     const handleGoalProgressUpdated = (data: any) => {
       console.log('🔄 Progress screen received goal progress update event:', data);
-      // Refresh stats when goal progress is updated
       if (user) {
-        loadUserStats(true); // Refresh mode
+        loadUserStats(true); 
       }
     };
 
@@ -87,14 +82,12 @@ export const ProgressScreen: React.FC = () => {
     };
   }, [user]);
 
-  // Refresh data whenever the screen comes into focus (when switching tabs)
   useFocusEffect(
     useCallback(() => {
       if (user) {
-        console.log('🔄 Progress screen focused - refreshing data');
-        // Always refresh when focusing, but use smart loading state
-        const shouldShowLoading = !stats; // Only show loading if no data yet
-        loadUserStats(!shouldShowLoading); // Pass true for refresh mode if data exists
+        console.log('🔄 Progress screen focused - refreshing data')
+        const shouldShowLoading = !stats; 
+        loadUserStats(!shouldShowLoading); 
       }
     }, [user])
   );
@@ -108,25 +101,13 @@ export const ProgressScreen: React.FC = () => {
       } else {
         setLoading(true);
       }
-      
-      // Get user's active goals
       const userGoals = await DataService.getUserGoals(user.id);
-      
-      // Get today's completions
       const todayCompletions = await DataService.getTodayCompletions(user.id);
-      
-      // Debug XP data first
       await DataService.debugXPData(user.id);
-      
-      // Recalculate and fix today's XP first
       const todayXP = await DataService.recalculateTodayXP(user.id);
-      
-      // Get other XP data
       const totalXP = await DataService.getUserTotalXP(user.id);
       const weeklyXP = await DataService.getUserWeeklyXP(user.id);
       const monthlyXP = await DataService.getUserMonthlyXP(user.id);
-      
-      // Calculate user level
       const level = calculateUserLevel(totalXP);
       setUserLevel(level);
       
@@ -136,23 +117,20 @@ export const ProgressScreen: React.FC = () => {
         weeklyXP,
         monthlyXP,
         completedHabitsToday: todayCompletions.length,
-        currentStreak: 1, // TODO: Calculate actual streak
+        currentStreak: 1,
         completedGoals: userGoals.filter(g => g.progress >= 100).length,
         activeGoals: userGoals.filter(g => g.progress < 100).length,
       };
       
       setStats(statsData);
-      
-      // Update character with current progress
       updateCharacterProgress({
         totalXP: statsData.totalXP,
         currentStreak: statsData.currentStreak,
         completedHabitsToday: statsData.completedHabitsToday,
         level: level?.level || 1,
-        habitsThisWeek: statsData.weeklyXP / 8, // Rough estimate of weekly habits
+        habitsThisWeek: statsData.weeklyXP / 8, 
       });
       
-      // Check for streak milestones and level ups
       if (previousStreak.current > 0 && statsData.currentStreak > previousStreak.current) {
         const streakMilestones = [3, 7, 14, 30, 50, 100];
         const hitMilestone = streakMilestones.find(milestone => 
@@ -169,16 +147,12 @@ export const ProgressScreen: React.FC = () => {
                      hitMilestone >= 7 ? 'Amazing consistency! Keep it up! 💪' : 
                      'Great start! Building momentum! 🚀',
           });
-          
-          // Character reaction to streak milestone
           triggerCharacterMessage(
             `Wow! ${hitMilestone} days in a row! You're absolutely unstoppable! 🔥`,
             'celebrating'
           );
         }
       }
-      
-      // Check for level ups
       if (level && previousLevel.current > 0 && level.level > previousLevel.current) {
         triggerCelebration({
           type: 'level_up',
@@ -188,24 +162,20 @@ export const ProgressScreen: React.FC = () => {
           message: `You've grown so much! Keep pushing forward! 🌟`,
         });
         
-        // Character reaction to level up
         triggerCharacterMessage(
           `Level ${level.level}! I'm so proud of your growth! You're becoming amazing! ✨`,
           'excited'
         );
       }
       
-      // Character reactions to daily progress
       if (statsData.completedHabitsToday >= 3 && previousStreak.current === statsData.currentStreak) {
         const achievementMessage = getMotivationalMessage('achievement');
         triggerCharacterMessage(achievementMessage, 'proud');
       }
-      
-      // Update previous values
+
       previousStreak.current = statsData.currentStreak;
       if (level) previousLevel.current = level.level;
-      
-      // Trigger entrance animation when data loads
+
       if (!isRefresh) {
         Animated.parallel([
           Animated.timing(fadeAnim, {
@@ -381,7 +351,6 @@ export const ProgressScreen: React.FC = () => {
           {/* Featured Recent Achievements */}
           <View style={styles.featuredAchievements}>
             {(() => {
-              // Mock some achievements for demo (in real app, get from gamification service)
               const mockAchievements = [
                 {
                   id: 'first_steps',
@@ -420,7 +389,7 @@ export const ProgressScreen: React.FC = () => {
                   emoji: '🏗️',
                   category: 'milestone' as const,
                   rarity: 'rare' as const,
-                  unlocked: stats.totalXP >= 200, // Approximate 25 habits
+                  unlocked: stats.totalXP >= 200, 
                   progress: Math.min(stats.totalXP / 200, 1),
                 },
               ];
@@ -482,10 +451,9 @@ export const ProgressScreen: React.FC = () => {
           <CharacterHabitSuggestions
             userLevel={userLevel.level}
             currentStreak={stats.currentStreak}
-            completedCategories={[]} // TODO: Track actual completed categories
+            completedCategories={[]} 
             onSuggestionSelect={(suggestion) => {
               console.log('Selected habit suggestion:', suggestion.title);
-              // TODO: Add navigation to habit creation or integration
             }}
           />
         )}
@@ -568,7 +536,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   
-  // Enhanced Stat Card Styles
   statIcon: {
     width: 48,
     height: 48,
@@ -606,8 +573,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     ...theme.shadows.sm,
   },
-  
-  // Individual Card Color Schemes
+
   statCardTotalXP: {
     backgroundColor: '#FFFBF0',
     borderWidth: 1,
@@ -672,8 +638,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
     textAlign: 'center',
   },
-  
-  // Featured Achievements Styles
+
   featuredAchievements: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -684,8 +649,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
   },
-  
-  // Achievement Summary Styles
+
   achievementSummary: {
     flexDirection: 'row',
     justifyContent: 'space-between',

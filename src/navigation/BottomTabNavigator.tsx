@@ -7,6 +7,7 @@ import { CategoriesScreen } from '../screens/CategoriesScreen';
 import { GoalsScreen } from '../screens/GoalsScreen';
 import { HabitsScreen } from '../screens/HabitsScreen';
 import { VideoPlayerScreen } from '../screens/VideoPlayerScreen';
+import { TaskCompletedScreen } from '../screens/TaskCompletedScreen';
 import { ProgressScreen } from '../screens/ProgressScreen';
 import { ScheduleScreen } from '../screens/ScheduleScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
@@ -54,7 +55,15 @@ const HomeStackNavigator = () => {
         component={VideoPlayerScreen}
         options={{ 
           headerShown: false,
-          presentation: 'fullScreenModal',
+          presentation: 'modal',
+        }}
+      />
+      <HomeStack.Screen 
+        name="TaskCompleted" 
+        component={TaskCompletedScreen}
+        options={{ 
+          headerShown: false,
+          presentation: 'modal',
         }}
       />
     </HomeStack.Navigator>

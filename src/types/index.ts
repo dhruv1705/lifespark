@@ -43,6 +43,7 @@ export type RootStackParamList = {
   Goals: { categoryId: string };
   Habits: { goalId: string };
   VideoPlayer: { videoUrl: string; title?: string; habitId?: string; habitXp?: number };
+  TaskCompleted: { taskTitle: string; xpEarned?: number; streakDay?: number; isFirstTaskOfDay?: boolean };
 };
 
 export type ProfileStackParamList = {
