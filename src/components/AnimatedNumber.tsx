@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Text, Animated, TextStyle } from 'react-native';
+import { Text, Animated, TextStyle, StyleProp } from 'react-native';
 
 interface AnimatedNumberProps {
   value: number;
   duration?: number;
-  style?: TextStyle;
+  style?: StyleProp<TextStyle>;
   prefix?: string;
   suffix?: string;
   decimals?: number;
@@ -37,7 +37,6 @@ export const AnimatedNumber: React.FC<AnimatedNumberProps> = ({
       return;
     }
 
-    // Bounce animation when value changes
     if (bounceOnChange && value !== previousValue.current) {
       Animated.sequence([
         Animated.timing(scaleAnim, {
@@ -53,7 +52,6 @@ export const AnimatedNumber: React.FC<AnimatedNumberProps> = ({
       ]).start();
     }
 
-    // Number counting animation with safer listener handling
     let isActive = true;
     const listener = animatedValue.addListener(({ value: animValue }) => {
       if (isActive) {

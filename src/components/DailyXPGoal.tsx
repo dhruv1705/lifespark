@@ -20,8 +20,7 @@ export const DailyXPGoal: React.FC<DailyXPGoalProps> = ({
   const progressPercentage = Math.round(progress * 100);
   const isGoalReached = currentXP >= goalXP;
   const wasGoalReached = useRef(false);
-  
-  // Animation values
+
   const progressAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
   const celebrationAnim = useRef(new Animated.Value(0)).current;
@@ -30,33 +29,28 @@ export const DailyXPGoal: React.FC<DailyXPGoalProps> = ({
   
   useEffect(() => {
     if (animated) {
-      // Scale animation on mount
       Animated.spring(scaleAnim, {
         toValue: 1,
         tension: 100,
         friction: 8,
         useNativeDriver: true,
       }).start();
-      
-      // Progress ring animation
+
       Animated.timing(ringAnim, {
         toValue: progress,
         duration: 2000,
         useNativeDriver: false,
       }).start();
-      
-      // Linear progress animation
+
       Animated.timing(progressAnim, {
         toValue: progressPercentage,
         duration: 1800,
         useNativeDriver: false,
       }).start();
-      
-      // Goal reached celebration
+
       if (isGoalReached && !wasGoalReached.current) {
         wasGoalReached.current = true;
-        
-        // Trigger celebration
+
         triggerCelebration({
           type: 'daily_goal',
           intensity: 'high',
@@ -94,8 +88,7 @@ export const DailyXPGoal: React.FC<DailyXPGoalProps> = ({
       scaleAnim.setValue(1);
     }
   }, [animated, progress, progressPercentage, isGoalReached]);
-  
-  // Get time-based urgency styling
+
   const getTimeBasedStyle = () => {
     const hour = new Date().getHours();
     if (hour >= 20 && !isGoalReached) return 'urgent';
@@ -106,39 +99,29 @@ export const DailyXPGoal: React.FC<DailyXPGoalProps> = ({
   const timeStyle = getTimeBasedStyle();
   
   return (
-    <Animated.View style={[styles.container, { transform: [{ scale: scaleAnim }] }]}>
+    <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
           <Text style={styles.title}>Daily XP Goal</Text>
           {timeStyle === 'urgent' && <Text style={styles.urgentIndicator}>⏰ Time Running Out!</Text>}
           {timeStyle === 'warning' && <Text style={styles.warningIndicator}>⚡ Evening Push!</Text>}
         </View>
-        <Animated.View style={[
-          styles.statusContainer,
-          isGoalReached && { transform: [{ scale: pulseAnim }] }
-        ]}>
+        <View style={styles.statusContainer}>
           <Text style={[styles.status, isGoalReached && styles.statusCompleted]}>
             {isGoalReached ? '🎉 Goal Crushed!' : `${currentXP}/${goalXP} XP`}
           </Text>
-        </Animated.View>
+        </View>
       </View>
       
       {/* Enhanced circular progress indicator */}
       <View style={styles.progressContainer}>
-        <Animated.View style={[
-          styles.circularProgress,
-          isGoalReached && { transform: [{ scale: celebrationAnim.interpolate({
-            inputRange: [0, 1],
-            outputRange: [1, 1.1]
-          }) }] }
-        ]}>
+        <View style={styles.circularProgress}>
           {/* Outer glow ring for completed state */}
           {isGoalReached && (
             <Animated.View style={[
               styles.glowRing,
               { 
                 opacity: celebrationAnim,
-                transform: [{ scale: pulseAnim }]
               }
             ]} />
           )}
@@ -166,13 +149,12 @@ export const DailyXPGoal: React.FC<DailyXPGoalProps> = ({
             ]} />
             
             <View style={styles.innerCircle}>
-              <Animated.Text style={[
+              <Text style={[
                 styles.percentageText, 
                 isGoalReached && styles.percentageCompleted,
-                { transform: [{ scale: isGoalReached ? pulseAnim : 1 }] }
               ]}>
                 {isGoalReached ? '🏆' : `${progressPercentage}%`}
-              </Animated.Text>
+              </Text>
               {!isGoalReached && (
                 <View style={styles.sparkles}>
                   <Text style={styles.sparkle}>✨</Text>
@@ -180,20 +162,18 @@ export const DailyXPGoal: React.FC<DailyXPGoalProps> = ({
               )}
             </View>
           </View>
-        </Animated.View>
+        </View>
         
         <View style={styles.goalInfo}>
-          <Animated.View style={[
-            { transform: [{ scale: isGoalReached ? pulseAnim : 1 }] }
-          ]}>
+          <View>
             <AnimatedNumber
               value={currentXP}
               style={styles.currentXP}
               duration={1800}
               animated={animated}
-              bounceOnChange={true}
+              bounceOnChange={false}
             />
-          </Animated.View>
+          </View>
           <Text style={styles.goalLabel}>XP earned today</Text>
           {!isGoalReached && (
             <View style={styles.remainingContainer}>
@@ -272,7 +252,6 @@ export const DailyXPGoal: React.FC<DailyXPGoalProps> = ({
           styles.celebrationContainer,
           { 
             opacity: celebrationAnim,
-            transform: [{ scale: celebrationAnim }]
           }
         ]}>
           <Text style={styles.celebrationText}>Incredible! 🌟</Text>
@@ -284,7 +263,7 @@ export const DailyXPGoal: React.FC<DailyXPGoalProps> = ({
           </View>
         </Animated.View>
       )}
-    </Animated.View>
+    </View>
   );
 };
 
@@ -298,8 +277,7 @@ const styles = StyleSheet.create({
     ...theme.shadows.md,
     overflow: 'hidden',
   },
-  
-  // Header Styles
+
   header: {
     marginBottom: theme.spacing.lg,
   },
@@ -350,8 +328,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.success,
   },
-  
-  // Enhanced Progress Container
+
   progressContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -363,24 +340,24 @@ const styles = StyleSheet.create({
   },
   glowRing: {
     position: 'absolute',
-    width: 85,
-    height: 85,
-    borderRadius: 42.5,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
     backgroundColor: theme.colors.success + '20',
-    top: -10,
-    left: -10,
+    top: -8,
+    left: -8,
     borderWidth: 2,
     borderColor: theme.colors.success + '40',
   },
   progressRing: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    borderWidth: 6,
+    width: 74,
+    height: 74,
+    borderRadius: 37,
+    borderWidth: 8,
     borderColor: theme.colors.neutral.lightGray,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F8F9FA',
     position: 'relative',
   },
   progressArc: {
@@ -392,12 +369,12 @@ const styles = StyleSheet.create({
     transformOrigin: '1.5px 38px',
   },
   innerCircle: {
-    width: 55,
-    height: 55,
-    borderRadius: 27.5,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#FFFFFF',
     ...theme.shadows.sm,
   },
   percentageText: {
@@ -419,7 +396,6 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   
-  // Goal Info Styles
   goalInfo: {
     flex: 1,
   },
@@ -469,8 +445,7 @@ const styles = StyleSheet.create({
     color: theme.colors.success,
     fontWeight: theme.typography.weights.bold,
   },
-  
-  // Enhanced Linear Progress
+
   linearProgressContainer: {
     marginBottom: theme.spacing.lg,
   },
@@ -503,8 +478,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.5)',
     borderRadius: theme.borderRadius.md,
   },
-  
-  // Milestone Styles
+
   milestones: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -536,16 +510,16 @@ const styles = StyleSheet.create({
   milestoneTextReached: {
     opacity: 1,
   },
-  
-  // Celebration Styles
+
   celebrationContainer: {
     alignItems: 'center',
     padding: theme.spacing.lg,
-    backgroundColor: 'linear-gradient(135deg, #F0FFF4 0%, #E6FFFA 100%)',
+    backgroundColor: '#F0FFF4',
     borderRadius: theme.borderRadius.xl,
     borderWidth: 2,
     borderColor: theme.colors.success,
     ...theme.shadows.lg,
+    marginTop: theme.spacing.sm,
   },
   celebrationText: {
     fontSize: theme.typography.sizes.xl,

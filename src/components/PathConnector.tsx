@@ -21,19 +21,20 @@ export const PathConnector: React.FC<PathConnectorProps> = ({
   progress = 0,
 }) => {
   const getPathData = () => {
-    const centerX = 187.5; // Half of screen width (375/2)
-    const leftX = 70;
-    const rightX = 305;
+    const screenWidth = 375; 
+    const nodeRadius = 40; 
+    const marginXL = 20; 
+    const progressRadius = 37; 
+    
+    const centerX = screenWidth / 2; 
+    const leftX = marginXL + nodeRadius; 
+    const rightX = screenWidth - marginXL - nodeRadius; 
     
     const startX = fromPosition === 'left' ? leftX : fromPosition === 'right' ? rightX : centerX;
     const endX = toPosition === 'left' ? leftX : toPosition === 'right' ? rightX : centerX;
-    
-    const startY = 0;
-    const endY = height;
-    
-    // Create smoother S-curves for better visual flow
+    const startY = 0; 
+    const endY = height - 65; 
     if (Math.abs(endX - startX) > 50) {
-      // Large horizontal movement - use S-curve
       const midY = height / 2;
       const controlOffset = Math.abs(endX - startX) * 0.4;
       
@@ -44,7 +45,6 @@ export const PathConnector: React.FC<PathConnectorProps> = ({
       
       return `M ${startX} ${startY} C ${cp1X} ${cp1Y}, ${cp2X} ${cp2Y}, ${endX} ${endY}`;
     } else {
-      // Small or no horizontal movement - use gentle curve
       const controlOffset = 30;
       const cp1X = startX + (endX - startX) * 0.5 + controlOffset;
       const cp1Y = startY + height * 0.4;
@@ -56,33 +56,22 @@ export const PathConnector: React.FC<PathConnectorProps> = ({
   };
 
   const getStrokeColor = () => {
-    return isCompleted ? theme.colors.primary.green : theme.colors.text.disabled;
+    return isCompleted ? theme.colors.primary.green : '#A0A0A0'; 
   };
 
   return (
     <View style={[styles.container, { height }]}>
-      <Svg height={height} width={375} style={styles.svg}>
-        {/* Base path */}
+      <Svg width="100%" height={height} style={styles.svg}>
         <Path
           d={getPathData()}
-          stroke={theme.colors.border}
+          stroke={getStrokeColor()}
           strokeWidth={3}
+          strokeDasharray="8,6"
           strokeLinecap="round"
+          strokeLinejoin="round"
           fill="none"
-          opacity={0.3}
+          opacity={0.8}
         />
-        {/* Progress path */}
-        {(isCompleted || showProgress) && (
-          <Path
-            d={getPathData()}
-            stroke={getStrokeColor()}
-            strokeWidth={isCompleted ? 4 : 3}
-            strokeLinecap="round"
-            strokeDasharray={isCompleted ? "0" : showProgress ? `${progress},${100-progress}` : "6,6"}
-            fill="none"
-            opacity={isCompleted ? 0.9 : 0.6}
-          />
-        )}
       </Svg>
     </View>
   );
@@ -91,10 +80,10 @@ export const PathConnector: React.FC<PathConnectorProps> = ({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: 40, // Half of new node height (80/2) to center the connection
+    top: 125, 
     left: 0,
     right: 0,
-    zIndex: -1,
+    zIndex: 0,
   },
   svg: {
     position: 'absolute',

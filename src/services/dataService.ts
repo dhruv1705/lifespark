@@ -81,7 +81,7 @@ const DEMO_GOALS: Goal[] = [
 
 const DEMO_HABITS: Habit[] = [
   // Physical Health Habits - Level 1
-  { id: '1', goal_id: '1', name: '5-min Morning Stretch', description: 'Start your day with gentle stretching', level: 1, xp: 10, created_at: new Date().toISOString() },
+  { id: '1', goal_id: '1', name: '5-min Morning Stretch', description: 'Start your day with gentle stretching', level: 1, xp: 10, created_at: new Date().toISOString(), },
   { id: '2', goal_id: '1', name: 'Track Water Intake', description: 'Log your daily water consumption', level: 1, xp: 8, created_at: new Date().toISOString() },
   { id: '3', goal_id: '1', name: 'Healthy Breakfast', description: 'Start with a nutritious meal', level: 1, xp: 15, created_at: new Date().toISOString() },
   

@@ -8,7 +8,7 @@ interface AnimatedStatCardProps {
   emoji: string;
   value: string | number;
   label: string;
-  progress: number; // 0-1
+  progress: number; 
   progressColor: string;
   backgroundColor: string;
   borderColor: string;
@@ -32,8 +32,7 @@ export const AnimatedStatCard: React.FC<AnimatedStatCardProps> = ({
   delay = 0,
 }) => {
   const { triggerCelebration } = useCelebration();
-  
-  // Animation values
+
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
   const iconBounceAnim = useRef(new Animated.Value(1)).current;
@@ -41,7 +40,6 @@ export const AnimatedStatCard: React.FC<AnimatedStatCardProps> = ({
   
   useEffect(() => {
     if (animated) {
-      // Enhanced staggered entrance animation with bounce
       Animated.sequence([
         Animated.delay(delay),
         Animated.spring(scaleAnim, {
@@ -58,7 +56,6 @@ export const AnimatedStatCard: React.FC<AnimatedStatCardProps> = ({
         }),
       ]).start();
       
-      // Enhanced progress bar animation with bounce
       Animated.sequence([
         Animated.delay(delay + 200),
         Animated.timing(progressAnim, {
@@ -74,7 +71,6 @@ export const AnimatedStatCard: React.FC<AnimatedStatCardProps> = ({
         }),
       ]).start();
       
-      // More dynamic icon bounce animation
       Animated.loop(
         Animated.sequence([
           Animated.timing(iconBounceAnim, {
@@ -94,8 +90,7 @@ export const AnimatedStatCard: React.FC<AnimatedStatCardProps> = ({
           }),
         ])
       ).start();
-      
-      // Enhanced glow effect with more variation
+
       Animated.loop(
         Animated.sequence([
           Animated.timing(glowAnim, {
@@ -123,7 +118,6 @@ export const AnimatedStatCard: React.FC<AnimatedStatCardProps> = ({
   
   const handlePress = () => {
     if (onPress) {
-      // Enhanced press animation with celebration trigger
       Animated.sequence([
         Animated.timing(scaleAnim, {
           toValue: 0.95,
@@ -142,7 +136,6 @@ export const AnimatedStatCard: React.FC<AnimatedStatCardProps> = ({
         }),
       ]).start();
       
-      // Trigger celebration for high progress cards
       if (progress > 0.8) {
         triggerCelebration({
           type: 'habit_completed',
@@ -244,18 +237,18 @@ export const AnimatedStatCard: React.FC<AnimatedStatCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
+    borderRadius: 20,
+    padding: 20,
     alignItems: 'center',
-    width: '47%',
-    minHeight: 120,
-    maxHeight: 140,
+    flex: 1,
+    minHeight: 180,
+    maxHeight: 220,
     marginBottom: theme.spacing.md,
-    marginHorizontal: '1.5%',
+    marginHorizontal: theme.spacing.sm,
     ...theme.shadows.md,
     position: 'relative',
     overflow: 'hidden',
-    borderWidth: 1,
+    borderWidth: 1.5,
     justifyContent: 'space-between',
   },
   glowEffect: {
@@ -267,9 +260,9 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.xl,
   },
   iconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: '#F8F9FA',
     justifyContent: 'center',
     alignItems: 'center',
@@ -277,7 +270,7 @@ const styles = StyleSheet.create({
     ...theme.shadows.sm,
   },
   emoji: {
-    fontSize: 20,
+    fontSize: 22,
   },
   value: {
     fontSize: theme.typography.sizes.xl,
@@ -287,7 +280,6 @@ const styles = StyleSheet.create({
   label: {
     fontSize: theme.typography.sizes.md,
     color: theme.colors.text.secondary,
-    marginBottom: theme.spacing.xs,
     textAlign: 'center',
     fontWeight: theme.typography.weights.medium,
     lineHeight: 18,
