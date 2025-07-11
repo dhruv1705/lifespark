@@ -20,6 +20,7 @@ import { DataService } from '../services/dataService';
 import { dataSync, DATA_SYNC_EVENTS } from '../utils/dataSync';
 import { RootStackParamList } from '../types';
 import { theme } from '../theme';
+import { StreakService } from '../services/streakService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -41,9 +42,8 @@ export const VideoPlayerScreen: React.FC<VideoPlayerScreenProps> = ({
   const [showControls, setShowControls] = useState(true);
   const [isLandscape, setIsLandscape] = useState(false);
   const [hasCompletedVideo, setHasCompletedVideo] = useState(false);
-  const [completionThreshold] = useState(0.95); // 95% completion threshold
+  const [completionThreshold] = useState(0.95); 
 
-  // Derived state from status
   const isLoaded = status?.isLoaded || false;
   const isPlaying = isLoaded && status && 'isPlaying' in status ? status.isPlaying : false;
   const currentTime = isLoaded && status && 'positionMillis' in status ? status.positionMillis / 1000 : 0;
@@ -51,7 +51,6 @@ export const VideoPlayerScreen: React.FC<VideoPlayerScreenProps> = ({
   const progress = duration > 0 ? currentTime / duration : 0;
 
   useEffect(() => {
-    // Handle hardware back button on Android
     const backAction = () => {
       handleExit();
       return true;
@@ -62,12 +61,10 @@ export const VideoPlayerScreen: React.FC<VideoPlayerScreenProps> = ({
       backAction
     );
 
-    // Auto-hide controls after 3 seconds
     const timer = setTimeout(() => {
       setShowControls(false);
     }, 3000);
 
-    // Listen for orientation changes
     const subscription = ScreenOrientation.addOrientationChangeListener((event) => {
       const { orientationInfo } = event;
       const isCurrentlyLandscape = orientationInfo.orientation === ScreenOrientation.Orientation.LANDSCAPE_LEFT || 
@@ -92,16 +89,14 @@ export const VideoPlayerScreen: React.FC<VideoPlayerScreenProps> = ({
       const progressPercentage = currentProgress * 100;
       
       console.log(`⏰ Video progress: ${currentTimeSeconds.toFixed(1)}s/${durationSeconds.toFixed(1)}s (${progressPercentage.toFixed(1)}%) - completion at: ${(completionThreshold * 100).toFixed(1)}%`);
-      
-      // Emit progress updates for real-time journey view updates
+    
       if (habitId && progressPercentage > 0) {
         dataSync.emit(DATA_SYNC_EVENTS.HABIT_PROGRESS_UPDATED, {
           habitId,
           progress: progressPercentage,
         });
       }
-      
-      // Check for video completion
+
       if (currentProgress >= completionThreshold && !hasCompletedVideo && durationSeconds > 0) {
         console.log(`🎯 Triggering video completion - threshold reached!`);
         handleVideoCompletion();
@@ -132,6 +127,17 @@ export const VideoPlayerScreen: React.FC<VideoPlayerScreenProps> = ({
           title: 'Habit Complete!',
           message: `Great job on completing: ${title}`,
         });
+
+        // Record streak and check if it's first task of the day
+        const streakData = await StreakService.recordTaskCompletion(user.id, habitId);
+        
+        // Navigate to TaskCompleted screen
+        navigation.navigate('TaskCompleted', {
+          taskTitle: title || 'Video Exercise',
+          xpEarned: xpToAward,
+          streakDay: streakData.streakDay,
+          isFirstTaskOfDay: streakData.isFirstTaskOfDay,
+        });
       }
     } catch (error) {
       console.error('Error handling video completion:', error);
@@ -139,7 +145,6 @@ export const VideoPlayerScreen: React.FC<VideoPlayerScreenProps> = ({
   };
 
   const handleExit = async () => {
-    // Reset orientation when exiting
     if (isLandscape) {
       await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
       if (Platform.OS === 'android') {
@@ -152,7 +157,6 @@ export const VideoPlayerScreen: React.FC<VideoPlayerScreenProps> = ({
   const toggleControls = () => {
     setShowControls(!showControls);
     
-    // Auto-hide controls after 3 seconds if showing
     if (!showControls) {
       setTimeout(() => {
         setShowControls(false);
@@ -189,7 +193,7 @@ export const VideoPlayerScreen: React.FC<VideoPlayerScreenProps> = ({
     if (!videoRef.current || !isLoaded || !status || !('positionMillis' in status) || !('durationMillis' in status)) return;
     
     try {
-      const newPosition = Math.min(status.positionMillis + 10000, status.durationMillis || 0); // +10 seconds
+      const newPosition = Math.min(status.positionMillis + 10000, status.durationMillis || 0);
       await videoRef.current.setPositionAsync(newPosition);
     } catch (error) {
       console.error('Error skipping forward:', error);
@@ -200,7 +204,7 @@ export const VideoPlayerScreen: React.FC<VideoPlayerScreenProps> = ({
     if (!videoRef.current || !isLoaded || !status || !('positionMillis' in status)) return;
     
     try {
-      const newPosition = Math.max(status.positionMillis - 10000, 0); // -10 seconds
+      const newPosition = Math.max(status.positionMillis - 10000, 0); 
       await videoRef.current.setPositionAsync(newPosition);
     } catch (error) {
       console.error('Error skipping backward:', error);
@@ -210,13 +214,11 @@ export const VideoPlayerScreen: React.FC<VideoPlayerScreenProps> = ({
   const toggleFullscreen = async () => {
     try {
       if (isLandscape) {
-        // Switch back to portrait
         await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
         if (Platform.OS === 'android') {
           await NavigationBar.setVisibilityAsync('visible');
         }
       } else {
-        // Switch to landscape
         await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
         if (Platform.OS === 'android') {
           await NavigationBar.setVisibilityAsync('hidden');
@@ -378,7 +380,7 @@ const styles = StyleSheet.create({
     height: height,
   },
   landscapeVideo: {
-    width: height, // Swap dimensions for landscape
+    width: height, 
     height: width,
     position: 'absolute',
     top: 0,
