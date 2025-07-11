@@ -7,6 +7,7 @@ type Habit = Database['public']['Tables']['habits']['Row'];
 type UserGoal = Database['public']['Tables']['user_goals']['Row'];
 type UserHabit = Database['public']['Tables']['user_habits']['Row'];
 type DailyCompletion = Database['public']['Tables']['daily_completions']['Row'];
+type UserInterest = Database['public']['Tables']['user_interests']['Row'];
 
 // Demo data for offline mode - synchronized with database content
 const DEMO_CATEGORIES: Category[] = [
@@ -832,6 +833,104 @@ export class DataService {
     } catch (error) {
       console.error('Error recording partial completion:', error);
       throw error;
+    }
+  }
+
+  // User Interests Methods
+  static async getUserInterests(userId: string): Promise<UserInterest[]> {
+    if (this.isOfflineMode()) {
+      console.log('📱 DataService: Using offline mode - Returning empty user interests');
+      return [];
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('user_interests')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('is_active', true);
+      
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.warn('DataService: Failed to fetch user interests, using offline fallback:', error);
+      return [];
+    }
+  }
+
+  static async saveUserInterests(userId: string, categoryIds: string[]): Promise<void> {
+    if (this.isOfflineMode()) {
+      console.log('📱 DataService: Using offline mode - Simulating save user interests');
+      return;
+    }
+
+    try {
+      // First, deactivate all existing interests
+      await supabase
+        .from('user_interests')
+        .update({ is_active: false })
+        .eq('user_id', userId);
+
+      // Then insert or reactivate the selected interests
+      const interests = categoryIds.map(categoryId => ({
+        user_id: userId,
+        category_id: categoryId,
+        is_active: true,
+      }));
+
+      const { error } = await supabase
+        .from('user_interests')
+        .upsert(interests, { onConflict: 'user_id,category_id' });
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('DataService: Failed to save user interests:', error);
+      throw error;
+    }
+  }
+
+  static async getCategoriesByUserInterests(userId: string): Promise<Category[]> {
+    if (this.isOfflineMode()) {
+      // In offline mode, return all categories
+      return DEMO_CATEGORIES;
+    }
+
+    try {
+      // Get user's interests
+      const userInterests = await this.getUserInterests(userId);
+      
+      // If no interests selected, return all categories (default behavior)
+      if (userInterests.length === 0) {
+        return await this.getCategories();
+      }
+
+      // Get categories based on user interests
+      const categoryIds = userInterests.map(interest => interest.category_id);
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .in('id', categoryIds)
+        .order('created_at');
+      
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.warn('DataService: Failed to fetch categories by interests, using all categories:', error);
+      return await this.getCategories();
+    }
+  }
+
+  static async hasUserInterests(userId: string): Promise<boolean> {
+    if (this.isOfflineMode()) {
+      return false;
+    }
+
+    try {
+      const interests = await this.getUserInterests(userId);
+      return interests.length > 0;
+    } catch (error) {
+      console.warn('DataService: Failed to check user interests:', error);
+      return false;
     }
   }
 }

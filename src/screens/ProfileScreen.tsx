@@ -1,10 +1,31 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { theme } from '../theme';
+import { DataService } from '../services/dataService';
 
 export const ProfileScreen: React.FC = () => {
   const { user, signOut } = useAuth();
+  const navigation = useNavigation<any>();
+  const [interestsCount, setInterestsCount] = useState<number>(0);
+
+  const loadInterestsCount = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const interests = await DataService.getUserInterests(user.id);
+      setInterestsCount(interests.length);
+    } catch (error) {
+      console.error('Error loading interests count:', error);
+    }
+  };
+
+  useFocusEffect(
+    React.useCallback(() => {
+      loadInterestsCount();
+    }, [user?.id])
+  );
 
   const handleSignOut = () => {
     Alert.alert(
@@ -82,6 +103,12 @@ export const ProfileScreen: React.FC = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>App Preferences</Text>
           <View style={styles.sectionContent}>
+            <ProfileRow
+              icon="❤️"
+              title="My Interests"
+              subtitle={interestsCount > 0 ? `${interestsCount} of 5 categories selected` : 'Select your areas of interest'}
+              onPress={() => navigation.navigate('Interests')}
+            />
             <ProfileRow
               icon="🎨"
               title="Theme"

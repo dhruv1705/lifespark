@@ -1,0 +1,17 @@
+{
+  "name": "lifespark-admin-panel",
+  "version": "1.0.0",
+  "description": "Admin panel for Lifespark wellness app",
+  "main": "index.html",
+  "scripts": {
+    "dev": "npx serve . -p 3000",
+    "build": "node build.js",
+    "start": "npx serve . -p 3000"
+  },
+  "keywords": ["admin", "dashboard", "lifespark"],
+  "author": "Lifespark Team",
+  "license": "MIT",
+  "devDependencies": {
+    "serve": "^14.0.0"
+  }
+}

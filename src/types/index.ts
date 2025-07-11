@@ -46,6 +46,11 @@ export type RootStackParamList = {
   TaskCompleted: { taskTitle: string; xpEarned?: number; streakDay?: number; isFirstTaskOfDay?: boolean };
 };
 
+export type ProfileStackParamList = {
+  Profile: undefined;
+  Interests: undefined;
+};
+
 export type BottomTabParamList = {
   HomeTab: undefined;
   ProgressTab: undefined;
