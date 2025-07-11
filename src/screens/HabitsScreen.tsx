@@ -44,6 +44,36 @@ export const HabitsScreen: React.FC<HabitsScreenProps> = ({ navigation, route })
     loadData();
   }, [goalId, user]);
 
+  // Listen for habit completion events from other screens (like VideoPlayerScreen)
+  useEffect(() => {
+    const handleHabitToggled = (eventData: any) => {
+      console.log('🔄 HabitsScreen received habit toggle event:', eventData);
+      const { habitId, completed, xp } = eventData;
+      
+      // Update local state to reflect the change
+      setHabitsList(prev => 
+        prev.map(h => 
+          h.id === habitId 
+            ? { ...h, completed }
+            : h
+        )
+      );
+      
+      // Update completed habits list
+      setCompletedHabits(prev => 
+        completed 
+          ? [...prev, habitId]
+          : prev.filter(id => id !== habitId)
+      );
+    };
+
+    dataSync.on(DATA_SYNC_EVENTS.HABIT_TOGGLED, handleHabitToggled);
+    
+    return () => {
+      dataSync.off(DATA_SYNC_EVENTS.HABIT_TOGGLED, handleHabitToggled);
+    };
+  }, []);
+
   const loadData = async () => {
     try {
       setLoading(true);

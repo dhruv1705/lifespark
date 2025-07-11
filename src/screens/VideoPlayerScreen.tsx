@@ -41,6 +41,7 @@ export const VideoPlayerScreen: React.FC<VideoPlayerScreenProps> = ({
   const [showControls, setShowControls] = useState(true);
   const [isLandscape, setIsLandscape] = useState(false);
   const [hasCompletedVideo, setHasCompletedVideo] = useState(false);
+  const [showCompletionOverlay, setShowCompletionOverlay] = useState(false);
   const [completionThreshold] = useState(0.95); // 95% completion threshold
 
   // Derived state from status
@@ -132,6 +133,11 @@ export const VideoPlayerScreen: React.FC<VideoPlayerScreenProps> = ({
           title: 'Habit Complete!',
           message: `Great job on completing: ${title}`,
         });
+
+        // Show completion overlay after a short delay
+        setTimeout(() => {
+          setShowCompletionOverlay(true);
+        }, 1000);
       }
     } catch (error) {
       console.error('Error handling video completion:', error);
@@ -356,6 +362,42 @@ export const VideoPlayerScreen: React.FC<VideoPlayerScreenProps> = ({
         onPress={toggleControls}
         activeOpacity={1}
       />
+
+      {/* Completion Overlay */}
+      {showCompletionOverlay && (
+        <View style={styles.completionOverlay}>
+          <View style={styles.completionContainer}>
+            <Text style={styles.completionTitle}>🎉 Congratulations!</Text>
+            <Text style={styles.completionMessage}>
+              You've completed: {title}
+            </Text>
+            <Text style={styles.xpEarned}>
+              + {habitXp || 0} XP Earned!
+            </Text>
+            
+            <View style={styles.completionButtons}>
+              <TouchableOpacity 
+                style={[styles.completionButton, styles.continueButton]}
+                onPress={handleExit}
+              >
+                <Text style={styles.continueButtonText}>Continue</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.completionButton, styles.replayButton]}
+                onPress={() => {
+                  setShowCompletionOverlay(false);
+                  setHasCompletedVideo(false);
+                  videoRef.current?.setPositionAsync(0);
+                  videoRef.current?.playAsync();
+                }}
+              >
+                <Text style={styles.replayButtonText}>Replay</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
     </View>
   );
 };
@@ -576,5 +618,81 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
+  },
+  completionOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  completionContainer: {
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    padding: 32,
+    alignItems: 'center',
+    marginHorizontal: 24,
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  completionTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: theme.colors.primary.green,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  completionMessage: {
+    fontSize: 18,
+    color: theme.colors.text.primary,
+    textAlign: 'center',
+    marginBottom: 12,
+    lineHeight: 24,
+  },
+  xpEarned: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: theme.colors.secondary.orange,
+    marginBottom: 32,
+    textAlign: 'center',
+  },
+  completionButtons: {
+    flexDirection: 'row',
+    gap: 16,
+    width: '100%',
+  },
+  completionButton: {
+    flex: 1,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  continueButton: {
+    backgroundColor: theme.colors.primary.green,
+  },
+  continueButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  replayButton: {
+    backgroundColor: theme.colors.neutral.lightGray,
+    borderWidth: 2,
+    borderColor: theme.colors.primary.green,
+  },
+  replayButtonText: {
+    color: theme.colors.primary.green,
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
